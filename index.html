@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本旅遊完全攻略 | Japan Travel Guide</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d6433a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6h16M5 9.5h14M7.5 6v14M16.5 6v14'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@700;900&family=Reggae+One&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
+<style>
+/* ── 基礎變數 ─────────────────────────────────────── */
+:root {
+  /* ② 青空賽璐璐主題 */
+  --bg:      #d6f0fb;      /* 天空淡藍 */
+  --bg2:     #fff8ee;
+  --card:    #ffffff;      /* 白卡 */
+  --hover:   #eef9ff;
+  --ink:     #26263f;      /* 賽璐璐黑線 */
+  --red:     #ff5f86;
+  --gold:    #ffc23d;
+  --sakura:  #ff9ec4;
+  --sakura2: #ffd6e7;
+  --sky:     #7cccef;
+  --sky2:    #cdeefc;
+  --mint:    #7fe0c4;
+  --sun:     #ffce5c;
+  --text:    #26263f;
+  --text2:   #5a5a76;
+  --text3:   #8a8aa3;
+  --border:  #26263f;      /* 粗黑線 */
+  --bord2:   #26263f;
+  /* 季節換膚：以下變數會被 html[data-season] 覆寫，預設＝夏季青空 */
+  --body-grad:   linear-gradient(180deg, #a9e2f7 0%, #d4f0fb 34%, #fff8ee 82%);
+  --petal:       var(--sakura);
+  --petal-radius: 50% 0;
+}
+
+/* 春櫻：粉色天空、櫻花瓣 */
+html[data-season="spring"] {
+  --body-grad: linear-gradient(180deg, #fbdcea 0%, #ecf4fb 46%, #fff8ee 100%);
+  --bg: #fbe7f0;
+  --sky: #ff9ec4; --sky2: #ffe2ef;
+  --petal: #ff9ec4; --petal-radius: 50% 0;
+}
+/* 夏空：亮藍、新綠嫩葉 */
+html[data-season="summer"] {
+  --body-grad: linear-gradient(180deg, #a9e2f7 0%, #cdeefc 40%, #eafff6 100%);
+  --bg: #d6f0fb;
+  --sky: #2eb4e8; --sky2: #cdeefc;
+  --petal: #86d98f; --petal-radius: 50% 0 50% 0;
+}
+/* 秋楓：暖橙、楓葉 */
+html[data-season="autumn"] {
+  --body-grad: linear-gradient(180deg, #ffd6ab 0%, #ffe8d2 46%, #fff6ec 100%);
+  --bg: #ffe9d4;
+  --sky: #ef7f54; --sky2: #ffe0cc;
+  --petal: #ef7f54; --petal-radius: 50% 0 50% 0;
+}
+/* 冬雪：冷藍白、雪花 */
+html[data-season="winter"] {
+  --body-grad: linear-gradient(180deg, #d7e9fa 0%, #e9f4fc 46%, #ffffff 100%);
+  --bg: #e4effb;
+  --sky: #6fa9e0; --sky2: #dcecfb;
+  --petal: #ffffff; --petal-radius: 50%;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+/* clamp(最小, 視窗比例, 最大) → 任何螢幕都有合理的基準字體 */
+html { font-size: clamp(13px, 1.2vw, 24px); }
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: 'Noto Sans TC', system-ui, sans-serif;
+  background: var(--body-grad);
+  color: var(--ink);
+  transition: background .6s ease;
+}
+
+/* ── 整體版型 ─────────────────────────────────────── */
+.app {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: clamp(64px, 7vh, 84px) 1fr;
+  grid-template-columns: 42fr 58fr;
+  grid-template-areas: "hdr hdr" "map info";
+}
+
+/* ── 頂部 Header ──────────────────────────────────── */
+header {
+  grid-area: hdr;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0 1.25rem;
+  background: rgba(255,255,255,.82);
+  backdrop-filter: blur(12px);
+  border-bottom: 3px solid var(--ink);
+  z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 0.625rem; flex-shrink: 0; }
+.logo-icon {
+  width: 2.3rem; height: 2.3rem; border-radius: 0.6rem;
+  background: var(--sakura); border: 2.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+.logo-title { font-size: 1.1rem; font-weight: 900; letter-spacing: .3px; }
+.logo-sub   { font-size: 0.75rem; color: var(--text3); letter-spacing: 1.5px; margin-top: 0.125rem; font-weight: 700; }
+
+/* ── 季節換膚切換鈕 ────────────────────────────────── */
+.season-switch {
+  display: flex; gap: 2px; flex-shrink: 0; margin-left: auto;
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 1.6rem; padding: 3px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.season-btn {
+  width: 1.85rem; height: 1.85rem; border-radius: 50%;
+  border: none; background: transparent; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); cursor: pointer; font-family: inherit;
+  transition: transform .12s, background .15s, color .15s;
+}
+.season-btn:hover { transform: scale(1.15); color: var(--ink); }
+.season-btn.active { background: var(--sc); color: var(--ink); }
+.season-btn .ui-ic { margin-right: 0; }
+
+/* ── 主題探索 chip（歡迎頁）─────────────────────────── */
+.cat-explore {
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  justify-content: center; margin: 1.75rem auto 0.5rem; max-width: 640px;
+}
+.cat-explore .cat-title {
+  width: 100%; text-align: center; color: var(--text3);
+  font-size: 0.85rem; letter-spacing: 0.08em; margin-bottom: 0.3rem;
+}
+.cat-chip {
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 1.5rem; padding: 0.45em 1.1em;
+  color: var(--text); font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; transition: all .15s; font-family: inherit;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.cat-chip:hover {
+  background: var(--sky2); transform: translate(-1px,-2px);
+  box-shadow: 3px 4px 0 var(--ink);
+}
+/* 歡迎頁主要 CTA：AI 排行程（金底貼紙風，同 #trip-fab 語言但更大＝主要動作） */
+.hero-cta {
+  display: flex; align-items: center; gap: 0.85rem;
+  width: fit-content; max-width: 100%; margin: 1.6rem auto 0.25rem;
+  padding: 0.75rem 1.4rem; text-align: left; text-decoration: none;
+  color: var(--ink); background: var(--gold);
+  border: 3px solid var(--ink); border-radius: 1.5rem;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform .15s, box-shadow .15s;
+}
+.hero-cta:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+.hero-cta:active { transform: translate(0,0); box-shadow: 3px 3px 0 var(--ink); }
+.hero-cta svg { width: 1.75rem; height: 1.75rem; flex-shrink: 0; }
+.hero-cta-main { display: block; font-weight: 800; font-size: 1rem; letter-spacing: 0.04em; }
+.hero-cta-sub  { display: block; margin-top: 0.15rem; font-size: 0.76rem; font-weight: 600; opacity: 0.75; }
+
+.cat-from {
+  margin-top: 0.5rem; font-size: 0.82rem; color: var(--gold);
+  cursor: pointer; font-weight: 600;
+}
+.cat-from:hover { text-decoration: underline; }
+.season-chip:hover {
+  border-color: var(--sc); color: var(--sc); background: transparent;
+}
+.season-prefs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.season-pref-chip {
+  background: #fff; border: 2.5px solid var(--ink); color: var(--text);
+  border-radius: 1.2rem; padding: 0.4em 1em; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all .15s; box-shadow: 2px 2px 0 var(--ink);
+}
+.season-pref-chip:hover {
+  background: var(--sky2); transform: translate(-1px,-2px); box-shadow: 3px 4px 0 var(--ink);
+}
+
+/* ── 旅遊工具箱 ───────────────────────────────────── */
+.tool-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.2rem; }
+.tool-tab {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: #fff; border: 2.5px solid var(--ink); border-radius: 1.3rem;
+  padding: 0.4em 0.95em; font-size: 0.9rem; font-weight: 700; color: var(--text);
+  cursor: pointer; font-family: inherit; transition: all .15s; box-shadow: 2px 2px 0 var(--ink);
+}
+.tool-tab:hover { background: var(--sky2); transform: translate(-1px,-2px); box-shadow: 3px 4px 0 var(--ink); }
+.tool-tab.active { background: var(--sky); color: #fff; }
+.tool-card {
+  background: #fff; border: 3px solid var(--ink); border-radius: 1.1rem;
+  box-shadow: 5px 5px 0 var(--ink); padding: 1.3rem 1.4rem; margin-bottom: 1rem;
+}
+.tool-card-head {
+  font-size: 1.05rem; font-weight: 900; color: var(--ink); margin-bottom: 1rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+}
+
+/* 匯率換算 */
+.fx-rate-line { font-size: 0.9rem; color: var(--text2); margin-bottom: 1.1rem; display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
+.fx-rate-line input { width: 6.5rem; font-family: inherit; font-size: 0.9rem; font-weight: 700; border: 2px solid var(--ink); border-radius: 0.5rem; padding: 0.2em 0.5em; }
+.fx-rate-tag { background: var(--mint); border: 2px solid var(--ink); border-radius: 999px; padding: 0.05rem 0.55rem; font-size: 0.72rem; font-weight: 800; color: var(--ink); }
+.fx-row { display: flex; align-items: center; gap: 0.7rem; }
+.fx-row label { width: 5rem; font-weight: 800; color: var(--ink); }
+.fx-row input { flex: 1; min-width: 0; font-family: inherit; font-size: 1.4rem; font-weight: 900; color: var(--ink); border: 2.5px solid var(--ink); border-radius: 0.6rem; padding: 0.3em 0.6em; box-shadow: 2px 2px 0 var(--ink); }
+.fx-swap { text-align: center; font-size: 1.3rem; color: var(--text3); margin: 0.55rem 0; }
+.fx-quick { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1.1rem; }
+.fx-qbtn { background: var(--sky2); border: 2px solid var(--ink); border-radius: 1.2rem; padding: 0.3em 0.85em; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 1.5px 1.5px 0 var(--ink); transition: all .12s; }
+.fx-qbtn:hover { background: var(--gold); transform: translate(-1px,-1px); }
+
+/* 打包清單 */
+.pack-reset { background: #fff; border: 2px solid var(--ink); border-radius: 1rem; padding: 0.2em 0.7em; font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 1.5px 1.5px 0 var(--ink); }
+.pack-reset:hover { background: var(--sakura2); }
+.pack-progress { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.2rem; }
+.pack-bar { flex: 1; height: 0.85rem; background: var(--sky2); border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.pack-bar-fill { height: 100%; background: var(--mint); transition: width .25s; }
+.pack-count { font-size: 0.82rem; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.pack-group { margin-bottom: 1rem; }
+.pack-group-name { font-size: 0.82rem; font-weight: 800; color: var(--sky); letter-spacing: 0.05em; margin-bottom: 0.5rem; border-bottom: 2px dashed var(--sky2); padding-bottom: 0.25rem; }
+.pack-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.32rem 0; cursor: pointer; font-size: 0.92rem; }
+.pack-item input { display: none; }
+.pack-tick { width: 1.3rem; height: 1.3rem; flex-shrink: 0; border: 2.5px solid var(--ink); border-radius: 0.4rem; background: #fff; position: relative; transition: background .12s; }
+.pack-item.done .pack-tick { background: var(--mint); }
+.pack-item.done .pack-tick::after { content: ''; position: absolute; left: 0.36rem; top: 0.1rem; width: 0.3rem; height: 0.62rem; border: solid var(--ink); border-width: 0 0.18rem 0.18rem 0; transform: rotate(42deg); }
+.pack-item.done .pack-text { color: var(--text3); text-decoration: line-through; }
+.pack-del { margin-left: auto; flex-shrink: 0; width: 1.5rem; height: 1.5rem; display: flex; align-items: center; justify-content: center; border-radius: 0.4rem; font-size: 1.15rem; font-weight: 800; color: var(--text3); line-height: 1; cursor: pointer; }
+.pack-del:hover { background: var(--sakura2); color: var(--ink); }
+.pack-add { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+.pack-add input { flex: 1; min-width: 0; font-family: inherit; font-size: 0.9rem; color: var(--ink); border: 2.5px solid var(--ink); border-radius: 0.5rem; padding: 0.45rem 0.7rem; background: #fff; }
+.pack-add input:focus { outline: none; box-shadow: 2px 2px 0 var(--gold); }
+.pack-add button { font-family: inherit; font-weight: 800; font-size: 0.85rem; color: var(--ink); background: var(--gold); border: 2.5px solid var(--ink); border-radius: 0.5rem; padding: 0 0.9rem; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
+.pack-add button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+
+/* 季節速查表 */
+.st-legend { font-size: 0.8rem; color: var(--text2); margin-bottom: 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem; }
+.st-leg { display: inline-flex; align-items: center; gap: 0.3rem; }
+.st-leg-note { color: var(--text3); }
+.st-dot { width: 0.85rem; height: 0.85rem; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--ink); background: #e7e7ef; display: inline-block; }
+.st-region { margin-bottom: 0.9rem; }
+.st-region-name { font-size: 0.82rem; font-weight: 800; color: var(--rc); border-left: 5px solid var(--rc); padding-left: 0.5rem; margin-bottom: 0.4rem; }
+.st-row { display: flex; align-items: center; justify-content: space-between; width: 100%; background: #fff; border: 2px solid var(--ink); border-radius: 0.6rem; padding: 0.4em 0.8em; margin-bottom: 0.4rem; cursor: pointer; font-family: inherit; box-shadow: 2px 2px 0 var(--ink); transition: all .12s; }
+.st-row:hover { background: var(--sky2); transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+.st-pref { font-size: 0.9rem; font-weight: 700; color: var(--ink); }
+.st-dots { display: flex; gap: 0.35rem; }
+
+/* 預算估算 */
+.bg-days { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.1rem; font-weight: 800; color: var(--ink); }
+.bg-step { width: 2rem; height: 2rem; border: 2.5px solid var(--ink); border-radius: 0.5rem; background: var(--sky2); font-size: 1.2rem; font-weight: 900; line-height: 1; cursor: pointer; font-family: inherit; box-shadow: 2px 2px 0 var(--ink); }
+.bg-step:hover { background: var(--gold); }
+.bg-days-n { font-size: 1.5rem; font-weight: 900; min-width: 2rem; text-align: center; }
+.bg-days-unit { color: var(--text2); font-weight: 700; }
+.bg-tiers { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; }
+.bg-tier { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; background: #fff; border: 2.5px solid var(--ink); border-radius: 0.7rem; padding: 0.55em 0.4em; cursor: pointer; font-family: inherit; box-shadow: 2px 2px 0 var(--ink); transition: all .12s; }
+.bg-tier:hover { background: var(--sky2); transform: translate(-1px,-1px); }
+.bg-tier.active { background: var(--sky); color: #fff; }
+.bg-tier-name { font-size: 0.95rem; font-weight: 900; }
+.bg-tier-sub { font-size: 0.68rem; opacity: 0.8; }
+.bg-break { border-top: 2px dashed var(--sky2); padding-top: 0.8rem; margin-bottom: 1rem; }
+.bg-line { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.28rem 0; color: var(--text); }
+.bg-line em { color: var(--text3); font-style: normal; font-size: 0.78rem; }
+.bg-line--day { font-weight: 900; color: var(--ink); border-top: 2px solid var(--ink); margin-top: 0.3rem; padding-top: 0.5rem; }
+.bg-total { text-align: center; background: var(--gold); border: 3px solid var(--ink); border-radius: 0.9rem; box-shadow: 4px 4px 0 var(--ink); padding: 1rem; }
+.bg-total-label { font-size: 0.82rem; font-weight: 700; color: var(--ink); }
+.bg-total-yen { font-size: 2rem; font-weight: 900; color: var(--ink); line-height: 1.15; }
+.bg-total-twd { font-size: 1rem; font-weight: 800; color: #7a5a00; }
+.bg-note { font-size: 0.74rem; color: var(--text3); margin-top: 0.8rem; text-align: center; line-height: 1.5; }
+
+/* ── 旅人性格測驗 ─────────────────────────────────── */
+.quiz-start-chip { background: var(--gold); border-color: var(--ink); }
+.quiz-start-chip:hover { background: var(--sun); }
+.quiz-progress { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.3rem; }
+.quiz-bar { flex: 1; height: 0.85rem; background: var(--sky2); border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.quiz-bar-fill { height: 100%; background: var(--gold); transition: width .3s; }
+.quiz-step-n { font-size: 0.82rem; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.quiz-q { font-size: 1.25rem; font-weight: 900; color: var(--ink); margin-bottom: 1.2rem; line-height: 1.4; }
+.quiz-opts { display: flex; flex-direction: column; gap: 0.7rem; }
+.quiz-opt {
+  text-align: left; background: #fff; border: 2.5px solid var(--ink); border-radius: 0.8rem;
+  padding: 0.9em 1.1em; font-size: 0.98rem; font-weight: 700; color: var(--text);
+  cursor: pointer; font-family: inherit; box-shadow: 3px 3px 0 var(--ink); transition: all .14s;
+}
+.quiz-opt:hover { background: var(--sky2); transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+.quiz-result {
+  text-align: center; background: #fff; border: 3px solid var(--ink); border-radius: 1.2rem;
+  box-shadow: 6px 6px 0 var(--ink); padding: 1.8rem 1.4rem; margin-bottom: 1.6rem;
+  border-top: 10px solid var(--qc);
+}
+.quiz-res-badge { font-size: 0.82rem; font-weight: 800; color: var(--text3); letter-spacing: 0.1em; }
+.quiz-res-icon { font-size: 3rem; color: var(--qc); margin: 0.5rem 0 0.3rem; }
+.quiz-res-icon svg { width: 3rem; height: 3rem; }
+.quiz-res-name { font-size: 1.7rem; font-weight: 900; color: var(--ink); font-family: 'Noto Serif TC', serif; }
+.quiz-res-desc { font-size: 0.95rem; color: var(--text2); line-height: 1.7; margin-top: 0.7rem; max-width: 28rem; margin-left: auto; margin-right: auto; }
+.quiz-sec-title { font-size: 0.95rem; font-weight: 900; color: var(--ink); margin: 0 0 0.8rem; padding-left: 0.6rem; border-left: 5px solid var(--gold); }
+.quiz-picks { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.6rem; }
+.quiz-pick {
+  text-align: left; background: #fff; border: 2.5px solid var(--ink); border-radius: 0.8rem;
+  border-top: 6px solid var(--rc); padding: 0.85em 0.95em; cursor: pointer; font-family: inherit;
+  box-shadow: 3px 3px 0 var(--ink); transition: all .14s;
+}
+.quiz-pick:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); background: var(--hover); }
+.quiz-pick-top { display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+.quiz-pick-name { font-size: 1.05rem; font-weight: 900; color: var(--ink); }
+.quiz-pick-en { font-size: 0.72rem; color: var(--text3); font-weight: 600; }
+.quiz-pick-sight { font-size: 0.82rem; color: var(--text2); margin-top: 0.4rem; }
+.quiz-cats { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.8rem; }
+.quiz-retry-wrap { text-align: center; }
+.quiz-retry {
+  background: var(--ink); color: #fff; border: 2.5px solid var(--ink); border-radius: 1.5rem;
+  padding: 0.6em 1.8em; font-size: 0.95rem; font-weight: 800; cursor: pointer; font-family: inherit;
+  box-shadow: 3px 3px 0 var(--gold); transition: all .14s;
+}
+.quiz-retry:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--gold); }
+
+/* ── 收藏 ─────────────────────────────────────────── */
+.fav-btn {
+  position: absolute; top: 0.55rem; right: 0.55rem; z-index: 3;
+  width: 2rem; height: 2rem; border-radius: 50%;
+  border: 2.5px solid var(--ink); background: #fff;
+  box-shadow: 2px 2px 0 var(--ink);
+  font-size: 0.9rem; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s, background .15s;
+}
+.fav-btn:hover { background: var(--sakura2); transform: translate(-1px,-1px); }
+.fav-btn.on { background: var(--sakura); }
+
+/* ── 台幣換算 + 地圖導航（卡片） ───────────────────── */
+.card-twd {
+  color: #b3791a; font-weight: 800; font-size: 0.72rem; white-space: nowrap;
+  background: var(--sun); border: 2px solid var(--ink);
+  padding: 0.02rem 0.45rem; border-radius: 999px;
+}
+.card-map {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  margin-top: 0.65rem; padding: 0.38em 0.85em;
+  font-size: 0.78rem; font-weight: 800; text-decoration: none;
+  color: #fff; background: var(--sky);
+  border: 2.5px solid var(--ink); border-radius: 0.7rem; box-shadow: 2px 2px 0 var(--ink);
+  transition: all .15s;
+}
+.card-map:hover {
+  background: #5fb8e6; transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink);
+}
+
+/* ── 我的收藏 · 行程頁 ─────────────────────────────── */
+.trip-guide {
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  margin: 0.2rem 0 0.9rem; padding: 0.9rem 1rem;
+  background: var(--bg2); border: 2.5px solid var(--ink);
+  border-radius: 0.85rem; box-shadow: 3px 3px 0 var(--ink);
+}
+.trip-step {
+  display: flex; align-items: center; gap: 0.5rem; flex: 1 1 13rem;
+  font-size: 0.82rem; font-weight: 600; color: var(--text); line-height: 1.4;
+}
+.trip-step b {
+  flex-shrink: 0; width: 1.5rem; height: 1.5rem;
+  background: var(--gold); color: var(--ink);
+  border: 2px solid var(--ink); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 900;
+}
+.trip-summary {
+  display: flex; align-items: baseline; gap: 0.65rem; flex-wrap: wrap;
+  margin: 0.2rem 0 0.9rem; padding: 0.8rem 1.1rem;
+  background: var(--sun);
+  border: 2.5px solid var(--ink); border-radius: 0.85rem;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.trip-sum-label { color: #6b4e12; font-size: 0.78rem; font-weight: 700; }
+.trip-sum-yen   { color: var(--ink); font-weight: 900; font-size: 1.2rem; letter-spacing: .01em; }
+.trip-sum-twd   { color: #b3791a; font-weight: 800; font-size: 0.9rem; }
+.trip-day { margin-bottom: 1.4rem; }
+.trip-day-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; margin: 0.2rem 0 0.75rem; padding-bottom: 0.45rem;
+  border-bottom: 1px dashed var(--bord2);
+}
+.trip-day-tag {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-weight: 800; font-size: 0.98rem; color: var(--sakura);
+}
+.trip-day-tag--unset { color: var(--text3); }
+.trip-day-budget { font-size: 0.8rem; color: var(--text2); }
+.trip-day-budget em { color: var(--gold); font-style: normal; font-weight: 700; }
+.trip-card-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; margin-top: 0.65rem; flex-wrap: wrap;
+}
+.trip-card-foot .cat-from { margin-top: 0; }
+.day-select {
+  background: #fff; color: var(--text); cursor: pointer;
+  border: 2px solid var(--ink); border-radius: 0.5rem;
+  padding: 0.26em 0.55em; font-size: 0.75rem; font-weight: 700; font-family: inherit;
+  box-shadow: 1.5px 1.5px 0 var(--ink); transition: background .15s;
+}
+.day-select:hover { background: var(--sky2); }
+
+/* ── 住宿區域指南 ─────────────────────────────────── */
+.stay-note { color: var(--text3); font-size: 0.78rem; margin-bottom: 0.9rem; }
+.stay-list { display: flex; flex-direction: column; gap: 0.85rem; }
+.stay-area {
+  background: var(--card); border: 1px solid var(--border);
+  border-left: 3px solid #5ec8b8; border-radius: 0.75rem;
+  overflow: hidden; transition: all .16s;
+}
+.stay-area:hover { background: var(--hover); border-color: var(--bord2); }
+.stay-body { padding: 1rem 1.1rem; }
+/* 左圖右文（寬版面）：左邊固定 3:2 橫向飯店照，不隨文字長短被拉成直的 */
+.stay-area.has-photo { display: flex; align-items: center; }
+.stay-area.has-photo .stay-body { flex: 1; min-width: 0; }
+.stay-photo { position: relative; flex-shrink: 0; }
+.stay-area.has-photo .stay-photo { width: 38%; max-width: 300px; aspect-ratio: 3 / 2; }
+.stay-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.stay-photo-cap {
+  position: absolute; left: 0.55rem; bottom: 0.5rem;
+  font-size: 0.72rem; font-weight: 700; color: #fff;
+  background: rgba(20,20,30,.62); padding: 0.2em 0.6em; border-radius: 0.4rem;
+}
+.stay-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.45rem; }
+.stay-icon { font-size: 1.2rem; }
+.stay-name { font-size: 1rem; font-weight: 800; }
+.stay-budget {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.78rem; color: #7ddf7d; font-weight: 600;
+}
+.stay-vibe { color: var(--text2); font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.35rem; }
+.stay-tip { color: var(--text3); font-size: 0.78rem; margin-bottom: 0.65rem; }
+.stay-book-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.stay-book-label { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; font-weight: 700; color: var(--text2); }
+.stay-tier {
+  display: inline-flex; flex-direction: column; align-items: center; line-height: 1.12;
+  padding: 0.28em 0.7em; font-size: 0.78rem; font-weight: 800; text-decoration: none;
+  color: #fff; background: var(--sky);
+  border: 2px solid var(--ink); border-radius: 0.55rem; box-shadow: 1.5px 1.5px 0 var(--ink);
+  transition: all .15s;
+}
+.stay-tier:nth-child(2) { background: var(--mint); }
+.stay-tier:nth-child(3) { background: var(--sky); }
+.stay-tier:nth-child(4) { background: var(--gold); color: var(--ink); }
+.stay-tier:hover { transform: translate(-1px,-1px); box-shadow: 2.5px 2.5px 0 var(--ink); filter: brightness(1.05); }
+.stay-tier-range { font-size: 0.6rem; font-weight: 600; opacity: .9; }
+
+/* ── 浮動回主頁鳥居鈕 ─────────────────────────────── */
+/* 賽璐璐貼紙風 FAB */
+#home-fab {
+  position: fixed; bottom: 1.6rem; right: 1.6rem; z-index: 200;
+  height: 3.2rem; display: none; align-items: center;
+  border: 3px solid var(--ink); border-radius: 1.6rem;
+  cursor: pointer; overflow: hidden; font-family: inherit;
+  color: #fff; background: var(--sakura);
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform .15s, box-shadow .15s;
+  animation: fabpop .28s ease;
+}
+#home-fab.show { display: inline-flex; }
+.fab-icon {
+  position: relative; width: 2.9rem; height: 3.2rem; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.fab-icon svg { position: relative; width: 1.4rem; height: 1.4rem; color: #fff; }
+.fab-label {
+  max-width: 0; opacity: 0; white-space: nowrap;
+  font-weight: 800; font-size: 0.86rem; letter-spacing: .06em;
+  transition: max-width .25s, opacity .2s, padding .25s;
+}
+#home-fab:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+#home-fab:hover .fab-label { max-width: 6rem; opacity: 1; padding-right: 1.05rem; }
+#home-fab:active { transform: translate(0,0); box-shadow: 3px 3px 0 var(--ink); }
+
+/* 常駐：我的行程 FAB（金底，平常只 icon、hover 才展開文字，紅徽章顯示收藏數） */
+#trip-fab {
+  position: fixed; bottom: 5.5rem; right: 1.6rem; z-index: 200;
+  height: 3.2rem; display: inline-flex; align-items: center;
+  border: 3px solid var(--ink); border-radius: 1.6rem;
+  cursor: pointer; font-family: inherit;
+  color: var(--ink); background: var(--gold);
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform .15s, box-shadow .15s;
+  animation: fabpop .28s ease;
+}
+#trip-fab .fab-icon svg { color: var(--ink); }
+#trip-fab:hover .fab-label {
+  max-width: 8rem; opacity: 1; padding-right: 1.05rem;
+}
+#trip-fab:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+#trip-fab:active { transform: translate(0,0); box-shadow: 3px 3px 0 var(--ink); }
+.fab-badge {
+  position: absolute; top: -.45rem; right: -.45rem;
+  min-width: 1.3rem; height: 1.3rem; padding: 0 .26rem;
+  background: var(--red); color: #fff; border: 2px solid var(--ink);
+  border-radius: 1rem; font-size: .72rem; font-weight: 900;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+@keyframes fabpop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ── 地圖面板 ─────────────────────────────────────── */
+#map-panel {
+  grid-area: map;
+  position: relative;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 0;
+  transition: background .6s ease;
+}
+#japan-svg { width: 100%; height: 100%; cursor: grab; display: block; }
+#japan-svg:active { cursor: grabbing; }
+
+.pref-path {
+  stroke: var(--bg); stroke-width: .7;
+  transition: opacity .15s, filter .15s;
+  cursor: pointer;
+}
+.pref-path:hover { filter: brightness(1.3); }
+.pref-path.has-fav { stroke: var(--gold); stroke-width: 1.4; }
+.pref-path.dimmed { opacity: .1; }
+.pref-path.selected { stroke: #fff; stroke-width: 2; filter: brightness(1.2); }
+.fav-heart { pointer-events: none; animation: favpulse 1.8s ease-in-out infinite; }
+@keyframes favpulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; } }
+.trip-route {
+  fill: none; stroke: var(--red); stroke-width: 2.5;
+  stroke-dasharray: 7 6; stroke-linecap: round; stroke-linejoin: round;
+  vector-effect: non-scaling-stroke; opacity: .9;
+  animation: routeflow 18s linear infinite;
+}
+@keyframes routeflow { to { stroke-dashoffset: -260; } }
+
+/* ── 地圖 Tooltip ─────────────────────────────────── */
+#map-tooltip {
+  position: absolute; pointer-events: none; z-index: 30;
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 0.6rem; padding: 0.45em 0.7em;
+  box-shadow: 3px 3px 0 var(--ink);
+  opacity: 0; transition: opacity .1s;
+  display: flex; flex-direction: column; gap: 0.28rem;
+  white-space: nowrap;
+}
+.tt-row  { display: flex; align-items: baseline; gap: 0.45rem; }
+.tt-name { font-size: 0.9rem; font-weight: 800; color: var(--ink); }
+.tt-en   { font-size: 0.7rem; color: var(--text3); font-weight: 700; }
+.tt-meta { display: flex; gap: 0.32rem; }
+.tt-meta:empty { display: none; }
+.tt-badge {
+  font-size: 0.66rem; font-weight: 800; line-height: 1;
+  padding: 0.26em 0.5em; border-radius: 0.4rem;
+  border: 1.5px solid currentColor;
+}
+.tt-budget { color: #c97b1f; }
+.tt-sight  { font-size: 0.7rem; font-weight: 700; color: var(--text2); }
+.tt-sight:empty { display: none; }
+
+/* ── 縮放按鈕 ─────────────────────────────────────── */
+.zoom-controls {
+  position: absolute; right: 0.875rem; bottom: 5.5rem;
+  display: flex; flex-direction: column; gap: 0.375rem; z-index: 10;
+}
+.zoom-btn {
+  width: 2.6rem; height: 2.6rem;
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 0.6rem; color: var(--ink); font-size: 1.25rem; font-weight: 800;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer; transition: all .15s; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+}
+.zoom-btn:hover { background: var(--sky2); transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+
+/* ── 圖例 ─────────────────────────────────────────── */
+#legend {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; flex-wrap: wrap; gap: 0.3rem;
+  padding: 0.75rem 0.625rem 0.625rem;
+  background: linear-gradient(to top, color-mix(in srgb, var(--bg) 96%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 78%, transparent 100%);
+  z-index: 10;
+}
+.leg-item {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.78rem; font-weight: 800; cursor: pointer;
+  padding: 0.32em 0.8em; border-radius: 2rem; transition: all .15s;
+  border: 2px solid var(--ink);
+  background: #fff; color: var(--ink); box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+.leg-item:hover { background: var(--sky2); transform: translate(-1px,-1px); box-shadow: 2.5px 2.5px 0 var(--ink); }
+.leg-item.active { background: var(--sky); color: #fff; }
+/* active 時文字/圓點強制白色（蓋過 JS 寫入的 inline 地區色，否則同色糊在一起看不清） */
+.leg-item.active span { color: #fff !important; }
+.leg-item.active .leg-dot { background: #fff !important; box-shadow: 0 0 5px rgba(255,255,255,.6) !important; }
+.leg-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; flex-shrink: 0; }
+
+/* ── 載入動畫 ─────────────────────────────────────── */
+#map-loading {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0.75rem; color: var(--text2); font-size: 0.8125rem; z-index: 20;
+}
+.spinner {
+  width: 2.5rem; height: 2.5rem;
+  border: 3px solid var(--border);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin .75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-error { color: var(--red); font-size: 0.8125rem; line-height: 1.6; text-align: center; }
+
+/* ── 資訊面板 ─────────────────────────────────────── */
+#info-panel {
+  grid-area: info;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hover) transparent;
+}
+#info-panel::-webkit-scrollbar { width: 3px; }
+#info-panel::-webkit-scrollbar-thumb { background: var(--hover); border-radius: 2px; }
+
+/* ── 歡迎畫面 ─────────────────────────────────────── */
+#welcome {
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 3.25rem 2.75rem 2.75rem; text-align: center; gap: 2rem;
+}
+.w-hero { display: flex; flex-direction: column; align-items: center; gap: 1.1rem; width: 100%; }
+.w-hero-art { width: min(440px, 100%); animation: heroPop .75s cubic-bezier(.2,.85,.3,1.15) both; }
+.hero-svg { display: block; width: 100%; height: auto; color: var(--ink);
+  filter: drop-shadow(5px 5px 0 var(--ink)); }
+.w-kanji {
+  font-size: 0.8125rem; color: var(--text3);
+  letter-spacing: 7px; margin-bottom: 0;
+  animation: heroFade .6s ease both .15s;
+}
+.w-title {
+  font-family: 'Noto Serif TC', serif;
+  font-size: clamp(2rem, 3.6vw, 3.25rem); font-weight: 900; line-height: 1.18;
+  letter-spacing: 1px; margin: 0;
+  animation: heroFade .6s ease both .25s;
+}
+.w-title .hl { color: var(--red); }
+@keyframes heroPop { from { opacity: 0; transform: translateY(20px) scale(.95); } to { opacity: 1; transform: none; } }
+@keyframes heroFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.w-sub {
+  font-size: 1rem; color: var(--text2);
+  line-height: 1.75; max-width: 32rem;
+}
+.w-stats { display: flex; gap: 3rem; }
+.w-stat .n { font-size: clamp(1.8rem, 2.8vw, 2.75rem); font-weight: 900; color: var(--gold); line-height: 1; }
+.w-stat .l { font-size: 0.8125rem; color: var(--text3); margin-top: 0.375rem; }
+
+.w-hint {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 0.9rem; padding: 0.8em 1.4em;
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: 0.9375rem; font-weight: 600; color: var(--text);
+  animation: pulse 3s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.65} }
+
+.w-features {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.875rem; width: 100%;
+}
+.w-feat {
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 0.9rem; padding: 1.25rem; text-align: left;
+  box-shadow: 4px 4px 0 var(--ink); transition: transform .15s, box-shadow .15s;
+}
+.w-feat:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+.w-feat-icon { font-size: 1.75rem; margin-bottom: 0.625rem; }
+.w-feat-name { font-size: 1rem; font-weight: 800; margin-bottom: 0.3125rem; }
+.w-feat-desc { font-size: 0.875rem; color: var(--text2); }
+
+/* 縣市比較模式 */
+.compare-zone {
+  width: 100%; background: #fff;
+  border: 2.5px solid var(--ink); border-radius: 1rem;
+  box-shadow: 4px 4px 0 var(--ink);
+  padding: 1.4rem 1.4rem 1.5rem; text-align: center;
+}
+.cz-head { font-family: 'Noto Serif TC', serif; font-size: 1.35rem; font-weight: 900; }
+.cz-sub { font-size: 0.85rem; color: var(--text2); margin-top: .3rem; margin-bottom: 1.1rem; }
+.cz-controls { display: flex; align-items: center; justify-content: center; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.cz-sel {
+  font-family: inherit; font-size: .9rem; font-weight: 700; color: var(--ink);
+  background: var(--bg); border: 2.5px solid var(--ink); border-radius: .6rem;
+  padding: .5em .8em; box-shadow: 2px 2px 0 var(--ink); cursor: pointer;
+}
+.cz-vs { font-weight: 900; color: var(--red); font-size: .85rem; }
+.cz-grid { display: grid; grid-template-columns: repeat(var(--cz-cols, 2), 1fr); gap: .9rem; }
+.cz-card {
+  border: 2.5px solid var(--ink); border-top: 7px solid var(--cz);
+  border-radius: .85rem; box-shadow: 3px 3px 0 var(--ink);
+  padding: 1rem .9rem; text-align: left; background: #fff;
+  display: flex; flex-direction: column; gap: .55rem;
+  animation: heroFade .4s ease both;
+}
+.cz-name { font-family: 'Noto Serif TC', serif; font-size: 1.2rem; font-weight: 900; line-height: 1; }
+.cz-en { font-size: .7rem; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-top: .22rem; }
+.cz-card .pv-meta { margin: .1rem 0; justify-content: flex-start; }
+.cz-row {
+  display: flex; justify-content: space-between; gap: .5rem; align-items: baseline;
+  font-size: .82rem; border-top: 1.5px dashed rgba(0,0,0,.1); padding-top: .42rem;
+}
+.cz-row-k { color: var(--text3); font-weight: 700; flex-shrink: 0; }
+.cz-row-v { color: var(--ink); font-weight: 700; text-align: right; }
+.cz-desc { font-size: .8rem; color: var(--text2); line-height: 1.6; }
+.cz-go {
+  margin-top: auto; font-family: inherit; font-weight: 800; font-size: .85rem;
+  color: #fff; background: var(--ink);
+  border: 2.5px solid var(--ink); border-radius: .55rem; padding: .55em;
+  box-shadow: 2px 2px 0 var(--ink); cursor: pointer; transition: transform .12s, box-shadow .12s;
+}
+.cz-go:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+
+/* ── 縣市詳情 ─────────────────────────────────────── */
+#pref-view {
+  display: none;
+  flex-direction: column;
+  animation: slidein .25s ease;
+}
+@keyframes slidein { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+.pv-header {
+  padding: 2rem 1.75rem 1.375rem;
+  border-bottom: 3px solid var(--ink);
+  position: relative;
+}
+.pv-share {
+  position: absolute; top: 1.4rem; right: 1.4rem;
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.38em 0.85em; font-size: 0.78rem; font-weight: 800;
+  font-family: inherit; cursor: pointer;
+  color: var(--ink); background: #fff;
+  border: 2.5px solid var(--ink); border-radius: 0.7rem; box-shadow: 2px 2px 0 var(--ink);
+  transition: all .15s;
+}
+.pv-share:hover { background: var(--sky2); transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+/* 清空行程：借用 .pv-share 定位與貼紙外觀，armed（待確認）狀態轉紅底白字 */
+.trip-clear:hover { background: #ffecec; transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+.trip-clear.armed, .trip-clear.armed:hover { color: #fff !important; background: var(--red) !important; }
+.pv-region-badge {
+  display: inline-flex; align-items: center;
+  border: 2.5px solid var(--ink); border-radius: 999px;
+  font-size: 0.75rem; font-weight: 800; color: #fff !important; background: var(--sakura) !important;
+  padding: 0.24em 0.9em; margin-bottom: 0.8rem; box-shadow: 2px 2px 0 var(--ink);
+  letter-spacing: .5px;
+}
+.pv-name { font-size: clamp(1.7rem, 2.6vw, 2.6rem); font-weight: 900; line-height: 1.05;
+  color: #fff; -webkit-text-stroke: 0; text-shadow: 2px 2px 0 var(--sky), 3px 4px 0 var(--ink); }
+.pv-name-en { font-size: 0.875rem; color: var(--text2); margin-top: 0.45rem; letter-spacing: 1px; font-weight: 800; }
+.pv-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.85rem; }
+.pv-badge {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.72rem; font-weight: 800; padding: 0.24em 0.7em;
+  border: 2.5px solid var(--ink); border-radius: 999px;
+  background: #fff; color: var(--ink); box-shadow: 2px 2px 0 var(--ink);
+}
+.pv-budget { color: #2bb895; border-color: #2bb89555; }
+.pv-desc {
+  margin-top: 1rem; color: var(--text); font-size: 0.85rem; line-height: 1.7; font-weight: 500;
+  background: #fff; border: 2.5px solid var(--ink); border-radius: 14px; padding: 0.85rem 1rem;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.pv-placeholder {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; padding: 48px 24px;
+  text-align: center;
+}
+.pv-placeholder-icon { font-size: 44px; opacity: .25; }
+.pv-placeholder-msg { font-size: 14px; color: var(--text2); }
+.pv-placeholder-sub { font-size: 12px; color: var(--text3); }
+
+/* ── 櫻花飄落 ─────────────────────────────────────── */
+#sakura {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 1; overflow: hidden;
+}
+.petal {
+  position: absolute; background: var(--petal);
+  opacity: .8; border-radius: var(--petal-radius);
+  top: -20px; animation: fall linear infinite;
+}
+@keyframes fall {
+  0%   { transform: translateY(0)     rotate(0deg)   translateX(0);    opacity: .45; }
+  50%  { transform: translateY(50vh)  rotate(200deg) translateX(60px); opacity: .2;  }
+  100% { transform: translateY(108vh) rotate(400deg) translateX(-40px);opacity: 0;   }
+}
+
+/* ── 分頁 Tabs ────────────────────────────────────── */
+.pv-tabs {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(255,255,255,.9); border-bottom: 3px solid var(--ink);
+  display: flex; padding: 0.45rem 1rem 0; gap: 0.4rem;
+  overflow-x: auto; scrollbar-width: none;
+}
+.pv-tabs::-webkit-scrollbar { display: none; }
+.pv-tab {
+  background: #fff; border: 2.5px solid var(--ink); border-bottom: none;
+  border-radius: 0.7rem 0.7rem 0 0;
+  color: var(--text); font-size: 0.875rem; font-weight: 700; padding: 0.55em 0.95em;
+  cursor: pointer; white-space: nowrap;
+  transition: all .15s; font-family: inherit; flex-shrink: 0;
+}
+.pv-tab:hover { background: var(--sky2); }
+.pv-tab.active { color: #fff; background: var(--sky); font-weight: 800; }
+
+/* ── 內容區 ───────────────────────────────────────── */
+.pv-content { padding: 1.25rem 1.5rem; }
+.sec-title {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--ink); font-weight: 800; margin-bottom: 0.85rem;
+  display: inline-block; background: var(--sun); border: 2.5px solid var(--ink);
+  border-radius: 999px; padding: 0.3em 0.9em; box-shadow: 2px 2px 0 var(--ink);
+}
+.empty-state { padding: 1.75rem 0; text-align: center; color: var(--text3); font-size: 0.75rem; font-weight: 600; }
+
+/* ── 景點區域分組小標題 ───────────────────────────── */
+.area-group { margin-top: 1.6rem; }
+.area-group:first-of-type { margin-top: 0.3rem; }
+.area-title {
+  display: flex; align-items: center; gap: 0.45em;
+  font-size: 1rem; font-weight: 800; color: var(--ink);
+  margin: 0 0 0.9rem; padding-bottom: 0.4rem;
+  border-bottom: 2.5px dashed var(--ink);
+}
+.area-title .ui-ic { color: var(--red); }
+.area-count {
+  font-size: 0.7rem; font-weight: 700; color: var(--ink);
+  background: var(--sun); border: 2px solid var(--ink); border-radius: 999px;
+  padding: 0.04em 0.55em; margin-left: auto;
+}
+
+/* ── 卡片（賽璐璐） ───────────────────────────────── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.1rem; }
+.card {
+  background: #fff; border: 3px solid var(--ink);
+  border-radius: 18px; padding: 1.05rem;
+  transition: transform .15s, box-shadow .15s; position: relative; overflow: hidden;
+  box-shadow: 5px 5px 0 var(--ink);
+  animation: cardin .42s cubic-bezier(.2,.7,.3,1) backwards;
+  animation-delay: calc(var(--i, 0) * .05s);
+}
+@keyframes cardin { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+.card:hover { transform: translate(-2px,-2px); box-shadow: 8px 8px 0 var(--ink); }
+.card:hover .card-img { transform: scale(1.05); }
+.card.wide { grid-column: 1 / -1; }
+.card-img {
+  display: block;
+  width: calc(100% + 2.1rem);
+  height: clamp(180px, 22vw, 300px);
+  object-fit: cover;
+  margin: -1.05rem -1.05rem 0.8rem;
+  border-bottom: 3px solid var(--ink);
+  background: var(--sky2);
+  transition: transform .35s ease;
+}
+.card.wide .card-img { height: clamp(220px, 28vw, 400px); }
+.card-icon {
+  display: inline-flex; width: 2.1rem; height: 2.1rem; align-items: center; justify-content: center;
+  background: var(--sakura2); border: 2.5px solid var(--ink); border-radius: 9px;
+  font-size: 1.05rem; margin-bottom: 0.55rem;
+}
+.card-name { font-size: 0.98rem; font-weight: 900; margin-bottom: 0.4rem; line-height: 1.3; }
+.card-desc { font-size: 0.8125rem; color: var(--text2); line-height: 1.65; margin-bottom: 0.5625rem; font-weight: 500; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem; }
+.tag {
+  font-size: 0.6875rem; padding: 0.14em 0.6em; border-radius: 999px; font-weight: 800;
+  background: var(--sky2); color: var(--ink); border: 2px solid var(--ink);
+  cursor: pointer; transition: all .14s;
+}
+.tag:hover { background: var(--sun); transform: translateY(-1px); }
+.card-meta { display: flex; gap: 0.5rem; font-size: 0.75rem; flex-wrap: wrap; align-items: center; }
+.card-where { color: #d56a93; font-weight: 700; }
+.card-price { color: #2faf6f; font-weight: 800; }
+.card-time  { color: var(--text3); font-weight: 600; }
+.card-tip {
+  margin-top: 0.5625rem; font-size: 0.75rem; color: var(--text2);
+  background: rgba(255,255,255,.03); border-radius: 0.375rem;
+  padding: 0.4375em 0.625em; line-height: 1.55;
+}
+
+/* ── 交通 ─────────────────────────────────────────── */
+.transport-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.transport-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: 0.625rem; padding: 0.75rem 0.875rem;
+  transition: background .15s ease, transform .15s ease, border-color .15s ease;
+}
+.transport-item:hover {
+  background: var(--hover); transform: translateX(2px);
+  border-left-color: var(--sakura);
+}
+.transport-head {
+  display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;
+}
+.transport-icon { font-size: 0.95rem; line-height: 1; flex-shrink: 0; }
+.transport-label {
+  font-size: 0.82rem; font-weight: 700; color: var(--text); letter-spacing: .3px;
+}
+.transport-val { font-size: 0.875rem; color: var(--text2); line-height: 1.7; }
+.transport-val .t-fare { color: var(--gold); font-weight: 700; }
+.transport-val .t-time { color: var(--text); font-weight: 600; }
+
+/* 抵達指南（交通分頁：精簡摘要＋按鈕） */
+.arrival-guide {
+  background: linear-gradient(180deg, rgba(240,165,0,.08), rgba(240,165,0,.02));
+  border: 1px solid var(--bord2); border-radius: 0.75rem;
+  padding: 0.9rem 1rem; margin-bottom: 0.9rem;
+}
+.arrival-title {
+  font-size: 0.9rem; font-weight: 700; color: var(--gold);
+  letter-spacing: .3px; margin-bottom: 0.55rem;
+}
+.arrival-summary { font-size: 0.86rem; color: var(--text2); line-height: 1.75; }
+.arrival-summary--brief { margin-bottom: 0.75rem; }
+.arrival-more {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: var(--gold); color: #1a1205; border: none;
+  font-size: 0.82rem; font-weight: 700; cursor: pointer;
+  padding: 0.45rem 0.85rem; border-radius: 0.5rem;
+  transition: filter .15s ease, transform .15s ease;
+}
+.arrival-more:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+/* 抵達指南彈窗（點進來的詳細介面） */
+.ag-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.2rem; animation: agfade .18s ease;
+}
+@keyframes agfade { from { opacity: 0; } to { opacity: 1; } }
+.ag-modal {
+  background: #fff; border: 3px solid var(--ink);
+  border-radius: 1rem; width: min(560px, 100%); max-height: 86vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 8px 8px 0 var(--ink);
+}
+.ag-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.2rem; border-bottom: 3px solid var(--ink);
+  background: var(--sun);
+}
+.ag-modal-title { font-size: 1.02rem; font-weight: 900; color: var(--ink); }
+.ag-close {
+  background: #fff; border: 2.5px solid var(--ink); color: var(--ink);
+  width: 1.9rem; height: 1.9rem; border-radius: 50%; cursor: pointer;
+  font-size: 0.85rem; font-weight: 800; flex-shrink: 0;
+  box-shadow: 2px 2px 0 var(--ink); transition: background .15s, transform .15s;
+}
+.ag-close:hover { background: var(--sakura2); transform: translate(-1px,-1px); }
+.ag-modal-body { padding: 1.1rem 1.2rem; overflow-y: auto; }
+
+/* AI 行程助手彈窗：比抵達指南寬，內容是 iframe 撐滿剩餘高度 */
+.ai-modal { width: min(980px, 100%); height: 90vh; max-height: 90vh; }
+.ai-frame { flex: 1; width: 100%; border: 0; display: block; }
+.ag-section-title {
+  font-size: 0.86rem; font-weight: 700; color: var(--gold);
+  margin: 1.1rem 0 0.6rem; letter-spacing: .3px;
+}
+.ag-section-title:first-of-type { margin-top: 1rem; }
+.arrival-steps { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+.arrival-step { display: flex; gap: 0.6rem; align-items: flex-start; }
+.arrival-num {
+  flex-shrink: 0; width: 1.4rem; height: 1.4rem; border-radius: 50%;
+  background: var(--gold); color: #1a1205; font-weight: 700;
+  font-size: 0.78rem; display: flex; align-items: center; justify-content: center;
+  margin-top: 0.05rem;
+}
+.arrival-text { font-size: 0.875rem; color: var(--text); line-height: 1.75; }
+.arrival-text .t-fare, .arrival-budget .t-fare { color: var(--gold); font-weight: 700; }
+.arrival-text .t-time, .arrival-budget .t-time { font-weight: 600; }
+.arrival-budget {
+  font-size: 0.875rem; color: var(--text); line-height: 1.75;
+  background: var(--bg2); border: 2.5px solid var(--ink);
+  border-left: 6px solid var(--gold); border-radius: 0.55rem; padding: 0.7rem 0.85rem;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.ag-tips { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.ag-tips li {
+  position: relative; padding-left: 1.1rem;
+  font-size: 0.86rem; color: var(--text2); line-height: 1.7;
+}
+.ag-tips li::before {
+  content: '•'; position: absolute; left: 0.2rem; color: var(--gold); font-weight: 700;
+}
+
+/* ── 建議 (四區塊各有風格) ─────────────────────────── */
+.adv-block { margin-bottom: 1.5rem; }
+.adv-title {
+  font-size: 0.92rem; font-weight: 800; letter-spacing: .3px;
+  margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.4rem;
+}
+.adv-title--season { color: #ff9ebb; }
+.adv-title--itin   { color: #4ecdc4; }
+.adv-title--souv   { color: #f0a500; }
+.adv-title--tips   { color: #c9b1ff; }
+
+/* 最佳季節：柔和漸層卡＋左側四季色帶 */
+.season-card {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, rgba(255,183,197,.10), rgba(78,205,212,.06));
+  border: 1px solid var(--bord2); border-radius: 0.75rem;
+  padding: 0.85rem 0.95rem 0.85rem 1.1rem;
+}
+.season-bar {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #ffb7c5, #4ecdc4, #f4845f, #45b7d1);
+}
+.season-text { font-size: 0.88rem; color: var(--text); line-height: 1.8; }
+
+/* 行程範例：青色時間軸動線 */
+.itin-timeline { padding-left: 0.2rem; }
+.itin-card { position: relative; display: flex; gap: 0.75rem; padding-bottom: 0.7rem; }
+.itin-card:last-child { padding-bottom: 0; }
+.itin-marker {
+  flex-shrink: 0; width: 0.7rem; height: 0.7rem; border-radius: 50%;
+  background: #4ecdc4; margin-top: 0.5rem; position: relative; z-index: 1;
+  box-shadow: 0 0 0 3px rgba(78,205,212,.18);
+}
+.itin-card:not(:last-child) .itin-marker::after {
+  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+  top: 1rem; bottom: -0.7rem; width: 2px;
+  background: linear-gradient(180deg, rgba(78,205,212,.55), rgba(78,205,212,.12));
+}
+.itin-content {
+  flex: 1; background: var(--card); border: 1px solid var(--border);
+  border-radius: 0.625rem; padding: 0.7rem 0.85rem;
+}
+.itin-title {
+  display: inline-block; font-size: 0.78rem; font-weight: 700; color: #06303a;
+  background: #4ecdc4; border-radius: 0.4rem; padding: 0.12rem 0.55rem; margin-bottom: 0.5rem;
+}
+.itin-body { font-size: 0.86rem; color: var(--text2); line-height: 1.75; }
+
+/* 必買伴手禮：暖琥珀色卡片＋圖/emoji 縮圖 */
+.souv-list { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+.souv-card {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(240,165,0,.14), rgba(244,132,95,.08));
+  border: 1px solid rgba(240,165,0,.32); border-radius: 1.5rem;
+  padding: 0.3rem 0.85rem 0.3rem 0.35rem;
+}
+.souv-thumb {
+  width: 1.9rem; height: 1.9rem; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.28); font-size: 0.95rem;
+}
+.souv-img { width: 100%; height: 100%; object-fit: cover; }
+.souv-name { font-size: 0.82rem; color: #ffd9a0; }
+
+/* 實用建議：紫色點綴卡 */
+.tips-list { display: flex; flex-direction: column; gap: 0.55rem; }
+.tip-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-left: 3px solid #c9b1ff; border-radius: 0 0.625rem 0.625rem 0;
+  padding: 0.8rem 1rem; font-size: 0.875rem; color: var(--text2); line-height: 1.7;
+}
+
+/* ── 地方概覽 Grid (歡迎頁) ───────────────────────── */
+.region-overview {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem; width: 100%;
+}
+.region-card {
+  position: relative; overflow: hidden;
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 0.8rem; padding: 0.85rem 1rem 0.85rem 1.25rem;
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer; transition: transform .15s, box-shadow .15s;
+}
+.region-card:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+.rc-name { font-size: 1.05rem; font-weight: 900; line-height: 1.15; margin-bottom: 0.2rem; }
+.rc-en   { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); font-weight: 700; }
+.rc-cnt  { font-size: 0.7rem; margin-top: 0.35rem; color: var(--text2); font-weight: 600; }
+
+/* ── 搜尋框 ───────────────────────────────────────── */
+.search-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+#search-input {
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 1.5rem; padding: 0.42em 1.1em;
+  color: var(--text); font-size: 0.875rem; font-weight: 600; font-family: inherit;
+  width: 13rem; outline: none; box-shadow: 2px 2px 0 var(--ink);
+  transition: width .2s, box-shadow .15s, background .15s;
+}
+#search-input:focus {
+  background: var(--hover); width: 18rem;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+#search-input::placeholder { color: var(--text3); font-weight: 500; }
+.search-results {
+  display: none;
+  position: absolute; top: calc(100% + 0.6rem); right: 0;
+  min-width: 22rem; max-height: 60vh; overflow-y: auto;
+  background: #fff; border: 2.5px solid var(--ink);
+  border-radius: 0.85rem; z-index: 200; box-shadow: 4px 4px 0 var(--ink);
+  scrollbar-width: thin; scrollbar-color: var(--sky2) transparent;
+}
+.search-results.open { display: block; }
+.sr-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.6rem 1rem; cursor: pointer;
+  border-bottom: 2px solid var(--ink);
+  transition: background .12s;
+}
+.sr-item:last-child { border-bottom: none; }
+.sr-item:hover { background: var(--sky2); }
+.sr-type {
+  flex-shrink: 0; font-size: 0.6rem; font-weight: 800;
+  padding: 0.2em 0.55em; border-radius: 0.4rem;
+  background: var(--sun); border: 2px solid var(--ink); color: var(--ink);
+  letter-spacing: .5px;
+}
+.sr-name { font-size: 0.875rem; font-weight: 600; line-height: 1.3; }
+.sr-pref { font-size: 0.75rem; color: var(--text2); margin-top: 0.1rem; }
+.sr-none { padding: 1rem 1.25rem; color: var(--text3); font-size: 0.8125rem; text-align: center; }
+
+/* ══ 各分頁主題（內容卡片換各自風格，外框統一賽璐璐） ══════════════════ */
+
+/* ── 美食 → ⑧ 夢可愛 pastel ─────────────────────────── */
+#pv-content[data-theme="food"] .sec-title { background:#ffc6e0; border-color:#e3a8d0; color:#a8508a; box-shadow:0 3px 0 #e3a8d0; }
+#pv-content[data-theme="food"] .card { border:2px solid #f2c8e6; border-radius:24px; box-shadow:0 8px 0 rgba(201,182,255,.5); }
+#pv-content[data-theme="food"] .card:hover { transform:translateY(-4px); box-shadow:0 12px 0 rgba(201,182,255,.55); }
+#pv-content[data-theme="food"] .card-img { border-bottom:2px solid #f2c8e6; }
+#pv-content[data-theme="food"] .card-icon { background:#c4e6ff; border:2px solid #f2c8e6; border-radius:50%; }
+#pv-content[data-theme="food"] .card-name { color:#6e5e8c; }
+#pv-content[data-theme="food"] .tag { background:#bdf0df; color:#3f9e84; border:2px solid #a8e6d2; }
+#pv-content[data-theme="food"] .tag:hover { background:#ffe6a8; }
+#pv-content[data-theme="food"] .card-price { color:#df7ab3; }
+#pv-content[data-theme="food"] .card-where { color:#b58fd6; }
+#pv-content[data-theme="food"] .card-twd { background:#fff2c4; border-color:#ecd99a; color:#c79a2a; }
+#pv-content[data-theme="food"] .card-map { background:#c9b6ff; border:2px solid #fff; box-shadow:0 3px 0 #a98fe0; color:#fff; }
+#pv-content[data-theme="food"] .card-map:hover { background:#b89ff0; transform:translateY(-1px); }
+
+/* ── 住宿 → ⑦ 浮世繪 和風（藍 + 朱 + 明朝） ──────────── */
+#pv-content[data-theme="stay"] .sec-title { background:#1f3a5f; border-color:#1f3a5f; color:#efe6d0; box-shadow:2px 2px 0 #c0432e; }
+#pv-content[data-theme="stay"] .stay-note { color:#6a5f4a; }
+#pv-content[data-theme="stay"] .stay-photo { border-radius:0; border-right:2.5px solid #1f3a5f; }
+#pv-content[data-theme="stay"] .stay-photo-cap { background:#1f3a5f; color:#efe6d0; border-radius:0; font-family:'Noto Serif TC',serif; }
+#pv-content[data-theme="stay"] .stay-area { background:#efe6d0; border:2.5px solid #1f3a5f; border-left:6px solid #c0432e; border-radius:3px; box-shadow:4px 4px 0 #2f5680; }
+#pv-content[data-theme="stay"] .stay-area:hover { background:#e8ddc0; transform:translate(-1px,-1px); box-shadow:5px 5px 0 #2f5680; }
+#pv-content[data-theme="stay"] .stay-name { color:#1f3a5f; font-family:'Noto Serif TC',serif; font-weight:900; }
+#pv-content[data-theme="stay"] .stay-budget { color:#1f6b50; }
+#pv-content[data-theme="stay"] .stay-vibe { color:#463f30; }
+#pv-content[data-theme="stay"] .stay-tip { color:#7a6f55; }
+#pv-content[data-theme="stay"] .stay-book-label { color:#6a5f4a; }
+#pv-content[data-theme="stay"] .stay-tier { color:#efe6d0; border:2px solid #1f3a5f; border-radius:3px; box-shadow:2px 2px 0 #1f3a5f; }
+#pv-content[data-theme="stay"] .stay-tier:nth-child(2) { background:#1f6b50; }
+#pv-content[data-theme="stay"] .stay-tier:nth-child(3) { background:#1f3a5f; }
+#pv-content[data-theme="stay"] .stay-tier:nth-child(4) { background:#c0432e; color:#efe6d0; }
+#pv-content[data-theme="stay"] .stay-tier:hover { box-shadow:3px 3px 0 #1f3a5f; }
+#pv-content[data-theme="stay"] .card-twd { background:#c0432e; border-color:#1f3a5f; color:#efe6d0; }
+
+/* ── 交通 → ⑨ 8-bit 像素 ──────────────────────────── */
+#pv-content[data-theme="transport"] { background:#10133a; margin:-1.25rem -1.5rem; padding:1.25rem 1.5rem 1.6rem; }
+#pv-content[data-theme="transport"] .sec-title { background:#ff5160; border:none; color:#fff; border-radius:0; font-family:'DotGothic16',sans-serif; box-shadow:0 -3px #fff,0 3px #fff,-3px 0 #fff,3px 0 #fff; }
+#pv-content[data-theme="transport"] .arrival-guide { background:#1c2150; border:none; border-radius:0; box-shadow:0 -3px #eef0ff,0 3px #eef0ff,-3px 0 #eef0ff,3px 0 #eef0ff; }
+#pv-content[data-theme="transport"] .arrival-title { color:#62f4f4; font-weight:800; font-size:1rem; text-shadow:2px 2px 0 #0a0c28; }
+#pv-content[data-theme="transport"] .arrival-summary { color:#cfd2f5; }
+#pv-content[data-theme="transport"] .arrival-more { background:#ffd23e; color:#10133a; border:none; border-radius:0; font-weight:700; box-shadow:0 -3px #fff,0 3px #fff,-3px 0 #fff,3px 0 #fff; }
+#pv-content[data-theme="transport"] .transport-item { background:#1c2150; border:none; border-radius:0; box-shadow:0 -3px #eef0ff,0 3px #eef0ff,-3px 0 #eef0ff,3px 0 #eef0ff; }
+#pv-content[data-theme="transport"] .transport-item:hover { background:#23295f; transform:none; }
+#pv-content[data-theme="transport"] .transport-icon { color:#62f4f4; }
+#pv-content[data-theme="transport"] .transport-label { color:#ffdc5e; font-weight:800; text-shadow:2px 2px 0 #0a0c28; }
+#pv-content[data-theme="transport"] .transport-val { color:#dcdef7; }
+#pv-content[data-theme="transport"] .transport-val .t-fare { color:#ffd23e; }
+#pv-content[data-theme="transport"] .transport-val .t-time { color:#37e0e0; }
+
+/* ── 建議 → ③ 漫畫網點（黑白 + 朱紅） ────────────────── */
+#pv-content[data-theme="tips"] .sec-title { background:#161616; border:none; color:#fff; border-radius:0; box-shadow:4px 4px 0 #df2a1e; }
+#pv-content[data-theme="tips"] .adv-title { color:#161616; font-weight:900; border-left:5px solid #df2a1e; padding-left:.6rem; background:none; -webkit-text-fill-color:#161616; }
+#pv-content[data-theme="tips"] .season-card,
+#pv-content[data-theme="tips"] .itin-card,
+#pv-content[data-theme="tips"] .souv-card,
+#pv-content[data-theme="tips"] .tip-item { background:#fff; border:3px solid #161616; border-radius:0; box-shadow:5px 5px 0 #161616; }
+#pv-content[data-theme="tips"] .season-bar { background:#df2a1e; }
+#pv-content[data-theme="tips"] .season-text,
+#pv-content[data-theme="tips"] .itin-body,
+#pv-content[data-theme="tips"] .tip-item { color:#222; }
+#pv-content[data-theme="tips"] .itin-title { background:#df2a1e; color:#fff; border-radius:0; font-weight:900; }
+#pv-content[data-theme="tips"] .itin-marker { background:#161616; }
+#pv-content[data-theme="tips"] .souv-name { color:#161616; font-weight:800; }
+
+/* ── 響應式 ───────────────────────────────────────── */
+@media (max-width: 860px) {
+  html { font-size: clamp(12px, 3.5vw, 16px); }
+  html, body { overflow: auto; }
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 3.5rem 44vh 1fr;
+    grid-template-areas: "hdr" "map" "info";
+    height: auto; min-height: 100vh;
+  }
+  #info-panel { overflow: visible; }
+  #welcome { padding: 1.25rem; }
+  /* 手機版 header：搜尋框改自適應，不再固定 13rem 撐爆視窗 */
+  header { gap: 0.55rem; padding: 0 0.85rem; }
+  .logo-sub { display: none; }
+  .search-wrap { flex: 1; min-width: 0; }
+  #search-input, #search-input:focus { width: 100%; }
+  .search-results { min-width: 0; width: min(20rem, calc(100vw - 1.7rem)); }
+  .w-features { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: 1fr; }
+  .quiz-picks { grid-template-columns: 1fr; }
+  /* 手機窄螢幕：住宿卡改回上下堆疊，圖在上 */
+  .stay-area.has-photo { flex-direction: column; align-items: stretch; }
+  .stay-area.has-photo .stay-photo { width: 100%; max-width: none; aspect-ratio: auto; }
+  .stay-img { height: 170px; min-height: 0; }
+  #pv-content[data-theme="stay"] .stay-photo { border-right: none; border-bottom: 2.5px solid #1f3a5f; }
+  /* 手機：交通深藍塊取消左右負 margin（桌機靠它做滿版，窄螢幕會溢出右緣 5px） */
+  #pv-content[data-theme="transport"] { margin-left: 0; margin-right: 0; }
+  /* 手機：匯率換算的大字輸入框改「標籤在上、輸入框在下」，避免 type=number 撐爆面板 */
+  .fx-row { flex-wrap: wrap; }
+  .fx-row label { width: 100%; }
+  .fx-row input { flex: 1 1 100%; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div id="sakura"></div>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" width="1.4em" height="1.4em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M5 9.5h14M7.5 6v14M16.5 6v14"/></svg></div>
+      <div>
+        <div class="logo-title">日本旅遊完全攻略</div>
+        <div class="logo-sub">JAPAN TRAVEL GUIDE · 47 PREFECTURES</div>
+      </div>
+    </div>
+    <div class="search-wrap" id="search-wrap">
+      <input type="text" id="search-input" placeholder="搜尋景點・美食・縣市..." autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <div class="season-switch" id="season-switch"></div>
+  </header>
+
+  <!-- 地圖 -->
+  <div id="map-panel">
+    <div id="map-loading">
+      <div class="spinner"></div>
+      <div>地圖載入中...</div>
+    </div>
+    <svg id="japan-svg"></svg>
+    <div id="map-tooltip">
+      <div class="tt-row">
+        <span class="tt-name" id="tt-name"></span>
+        <span class="tt-en"  id="tt-en"></span>
+      </div>
+      <div class="tt-meta"  id="tt-meta"></div>
+      <div class="tt-sight" id="tt-sight"></div>
+    </div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="btn-zoom-in">＋</button>
+      <button class="zoom-btn" id="btn-zoom-out">－</button>
+      <button class="zoom-btn" id="btn-zoom-reset" title="重置">⊕</button>
+    </div>
+    <div id="legend"></div>
+  </div>
+
+  <!-- 資訊面板 -->
+  <div id="info-panel">
+
+    <!-- 歡迎畫面 -->
+    <div id="welcome">
+      <div class="w-hero">
+        <div class="w-hero-art">
+          <svg class="hero-svg" viewBox="0 0 420 220" role="img" aria-label="富士山與鳥居">
+            <rect x="4" y="4" width="412" height="212" rx="22" fill="#cdeefb" stroke="currentColor" stroke-width="4"/>
+            <circle cx="318" cy="70" r="30" fill="#ffd23d" stroke="currentColor" stroke-width="4"/>
+            <path d="M70 70 q-14 0 -14 12 q0 12 14 12 h42 q14 0 14-12 q0-12-14-12 q-3-12-18-8 q-11-8-24 8z" fill="#fff" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
+            <path d="M248 118 q-12 0 -12 10 q0 10 12 10 h32 q12 0 12-10 q0-10-12-10 q-3-9-16-6z" fill="#fff" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
+            <path d="M90 196 L210 70 L330 196 Z" fill="#80a8cf" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M186 102 L196 110 L205 102 L214 111 L224 102 L234 105 L210 70 Z" fill="#fff" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
+            <g fill="#d6433a" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round">
+              <rect x="98" y="128" width="12" height="68"/>
+              <rect x="146" y="128" width="12" height="68"/>
+              <path d="M86 124 Q128 116 170 124 L170 133 Q128 125 86 133 Z"/>
+              <rect x="92" y="137" width="72" height="8"/>
+              <rect x="121" y="133" width="12" height="11"/>
+            </g>
+          </svg>
+        </div>
+        <div class="w-kanji">日 本 旅 遊 完 全 攻 略</div>
+        <h1 class="w-title">探索<span class="hl">日本</span>每個角落</h1>
+      </div>
+      <div class="w-sub">
+        點擊左側地圖上的都道府縣，查看景點、美食、住宿與交通攻略。涵蓋全國 47 個都道府縣。
+      </div>
+      <div class="w-stats">
+        <div class="w-stat"><div class="n">47</div><div class="l">都道府縣</div></div>
+        <div class="w-stat"><div class="n">9</div><div class="l">大地方區域</div></div>
+        <div class="w-stat"><div class="n">∞</div><div class="l">旅遊回憶</div></div>
+      </div>
+      <div class="w-hint">
+        <span>👈</span> 點擊地圖任一縣市開始探索
+      </div>
+      <a class="hero-cta" href="ai-planner.html" onclick="if(!event.metaKey&&!event.ctrlKey){event.preventDefault();openAiPlanner();}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z"/>
+        </svg>
+        <span>
+          <span class="hero-cta-main">讓 AI 幫你排行程</span>
+          <span class="hero-cta-sub">說出想去的地方和喜好，用站上 47 縣的景點美食排出每日路線</span>
+        </span>
+      </a>
+      <div class="cat-explore" id="cat-explore"></div>
+      <div class="cat-explore" id="season-explore"></div>
+      <div class="cat-explore" id="toolbox-entry"></div>
+      <div class="cat-explore" id="quiz-entry"></div>
+      <div class="region-overview" id="region-overview"></div>
+      <div class="compare-zone" id="compare-zone"></div>
+      <div class="w-features">
+        <div class="w-feat">
+          <div class="w-feat-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4z"/><path d="M9 4v14M15 6v14"/></svg></div>
+          <div class="w-feat-name">互動地圖</div>
+          <div class="w-feat-desc">縮放拖拽、點選縣市</div>
+        </div>
+        <div class="w-feat">
+          <div class="w-feat-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18M5 11v1a7 7 0 0 0 14 0v-1z"/><path d="M9 4c-.8 1.5.8 2.5 0 4M14 4c-.8 1.5.8 2.5 0 4"/></svg></div>
+          <div class="w-feat-name">美食攻略</div>
+          <div class="w-feat-desc">在地必吃推薦</div>
+        </div>
+        <div class="w-feat">
+          <div class="w-feat-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M6 20v-5h12v5M3.5 15l8.5-3 8.5 3M8.5 12V9h7v3M6.5 9l5.5-2.5L17.5 9M11 6.5V4.5h2v2"/></svg></div>
+          <div class="w-feat-name">景點導覽</div>
+          <div class="w-feat-desc">時程規劃與旅遊秘訣</div>
+        </div>
+        <div class="w-feat">
+          <div class="w-feat-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16c0-5 4-9 9-9h2a4 4 0 0 1 4 4v3a2 2 0 0 1-2 2H4z"/><path d="M4 13h7M7 19l1.5-3M15 19l1.5-3"/><circle cx="15" cy="13" r=".6"/></svg></div>
+          <div class="w-feat-name">交通指南</div>
+          <div class="w-feat-desc">JR、地鐵、巴士全收錄</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 縣市詳情（點擊後顯示，內容由 JS 生成） -->
+    <div id="pref-view"></div>
+
+  </div><!-- /info-panel -->
+
+</div><!-- /app -->
+
+<!-- 浮動回主頁鳥居鈕（非主畫面時才出現） -->
+<button id="home-fab" onclick="goHome()" title="回主頁" aria-label="回主頁">
+  <span class="fab-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3.4 7.4c3.2-2.1 14-2.1 17.2 0"/>
+      <path d="M6.2 8.4v10.8"/>
+      <path d="M17.8 8.4v10.8"/>
+      <path d="M5.2 11.4h13.6"/>
+    </svg>
+  </span>
+  <span class="fab-label">回主頁</span>
+</button>
+
+<!-- 常駐：我的行程規劃入口（任何頁都在） -->
+<button id="trip-fab" onclick="showFavorites()" title="我的行程規劃" aria-label="我的行程規劃">
+  <span class="fab-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/>
+      <path d="M3.5 9.5h17M8 3v4M16 3v4"/>
+      <path d="M7.5 13h3.5M7.5 16.5h6.5"/>
+    </svg>
+    <span class="fab-badge" id="trip-fab-badge">0</span>
+  </span>
+  <span class="fab-label">我的行程</span>
+</button>
+
+<script src="data.js?v=205"></script>
+<script src="app.js?v=205"></script>
+</body>
+</html>

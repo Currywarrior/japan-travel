@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 行程規劃助手 | 日本旅遊</title>
+<style>
+  :root{
+    --ink:#26263f; --gold:#ffc23d; --sakura:#ff9ec4; --mint:#7fe0c4;
+    --red:#ff5f86; --sky2:#cdeefc; --cream:#faf3e8; --paper:#fffdf8;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Noto Sans TC","Segoe UI",sans-serif; color:var(--ink);
+        background:var(--cream); line-height:1.7; padding:2rem 1rem; }
+  .wrap{ max-width:860px; margin:0 auto; }
+  h1{ font-size:1.9rem; font-weight:900; margin:0 0 .3rem;
+      text-shadow:2px 2px 0 var(--sky2), 3px 4px 0 var(--ink); }
+  .sub{ color:#6b6b80; font-weight:700; font-size:.85rem; letter-spacing:.05em; margin-bottom:1.5rem; }
+  .card{ background:var(--paper); border:3px solid var(--ink); border-radius:1rem;
+         box-shadow:5px 5px 0 var(--ink); padding:1.3rem 1.4rem; margin-bottom:1.3rem; }
+  label{ display:block; font-weight:800; font-size:.82rem; margin-bottom:.4rem; }
+  textarea, input[type=text]{
+    width:100%; font-family:inherit; font-size:.95rem; color:var(--ink);
+    border:2.5px solid var(--ink); border-radius:.6rem; padding:.6rem .8rem; background:#fff; resize:vertical; }
+  textarea:focus, input:focus{ outline:none; box-shadow:2px 2px 0 var(--gold); }
+  button{ font-family:inherit; font-weight:800; font-size:.95rem; cursor:pointer; color:var(--ink);
+          background:var(--gold); border:3px solid var(--ink); border-radius:.7rem;
+          box-shadow:3px 3px 0 var(--ink); padding:.65em 1.3em; transition:transform .12s, box-shadow .12s; }
+  button:hover:not(:disabled){ transform:translate(-2px,-2px); box-shadow:5px 5px 0 var(--ink); }
+  button:active:not(:disabled){ transform:translate(0,0); box-shadow:2px 2px 0 var(--ink); }
+  button:disabled{ opacity:.55; cursor:not-allowed; }
+  .btn-sm{ background:#fff; font-size:.82rem; padding:.5em .95em; box-shadow:2px 2px 0 var(--ink); }
+  .examples{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.7rem 0 0; }
+  .chip{ font-size:.78rem; font-weight:700; background:var(--sky2); border:2px solid var(--ink);
+         border-radius:1rem; padding:.28em .8em; cursor:pointer; }
+  .chip:hover{ background:var(--mint); }
+  .status{ font-weight:800; color:var(--red); }
+  .spinner{ display:inline-block; width:1em; height:1em; border:2.5px solid var(--ink);
+            border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; vertical-align:-.15em; margin-right:.4em; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .plan-title{ font-size:1.3rem; font-weight:900; margin:.2rem 0 1rem; }
+  .day{ border:2.5px solid var(--ink); border-radius:.8rem; margin-bottom:1rem; overflow:hidden; background:#fff; }
+  .day-head{ background:var(--gold); border-bottom:2.5px solid var(--ink); padding:.5rem .9rem; font-weight:900; display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+  .day-area{ font-size:.78rem; font-weight:700; color:#5a5a70; }
+  .item{ display:flex; gap:.8rem; padding:.75rem .9rem; border-top:1.5px dashed #d8d0c0; }
+  .item:first-child{ border-top:none; }
+  .item-thumb{ width:74px; height:74px; flex:none; border:2px solid var(--ink); border-radius:.5rem; object-fit:cover; background:#eee; }
+  .item-noimg{ width:74px; height:74px; flex:none; border:2px solid var(--ink); border-radius:.5rem; display:flex; align-items:center; justify-content:center; font-size:1.6rem; background:var(--sky2); }
+  .item-body{ flex:1; min-width:0; }
+  .item-name{ font-weight:900; font-size:1rem; }
+  .item-name a{ color:var(--ink); text-decoration:none; border-bottom:2px solid var(--mint); }
+  .kind{ font-size:.68rem; font-weight:800; border:1.5px solid var(--ink); border-radius:1rem; padding:.05em .5em; margin-left:.4em; vertical-align:.1em; }
+  .kind.food{ background:var(--sakura); }
+  .kind.sight{ background:var(--sky2); }
+  .item-why{ font-size:.86rem; margin:.15rem 0; }
+  .item-meta{ font-size:.75rem; color:#7a7a90; }
+  .unmatched{ font-size:.7rem; color:var(--red); font-weight:700; }
+  .save-bar{ display:flex; gap:.7rem; flex-wrap:wrap; align-items:center; margin-top:1rem; }
+  .plan-tip{ background:var(--mint); border:2.5px solid var(--ink); border-radius:.7rem; padding:.6rem .9rem; font-size:.86rem; font-weight:700; margin-top:1rem; }
+  .refine{ display:flex; gap:.6rem; margin-top:1rem; }
+  .refine input{ flex:1; }
+  .foot{ text-align:center; font-size:.75rem; color:#9a9ab0; margin-top:1rem; }
+  .saved-note{ font-weight:800; color:#1a9e6a; font-size:.86rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI 行程規劃助手</h1>
+  <div class="sub">依本站 47 縣真實景點資料排行程，一鍵存進「我的行程」</div>
+
+  <div class="card">
+    <label>想怎麼玩？（越具體越好：地區、天數、喜好、預算）</label>
+    <textarea id="prompt" rows="3" placeholder="例：關西玩 5 天，喜歡歷史神社跟美食，預算中等，第一次去日本"></textarea>
+    <div class="examples">
+      <span class="chip">關西 5 天・歷史＋美食</span>
+      <span class="chip">東京近郊 3 天・親子</span>
+      <span class="chip">北海道 4 天・自然溫泉</span>
+      <span class="chip">九州 6 天・溫泉美食</span>
+    </div>
+    <div style="margin-top:1rem;"><button id="go">生成行程</button></div>
+  </div>
+
+  <div class="card" id="outCard">
+    <div id="out">描述你的旅遊需求，按「生成行程」，AI 會用本站真實資料排出逐日行程，你可以一鍵存進「我的行程」。</div>
+  </div>
+
+  <div class="foot">行程景點皆對應本站真實資料・免費使用，無需登入或金鑰</div>
+</div>
+
+<script src="data.js"></script>
+<script>
+'use strict';
+
+/* ========================================================================
+   ⚙️ 設定：把這裡換成你部署好的 Cloudflare Worker 網址
+   （部署方式看同資料夾的 worker.js 檔頭說明）
+   ======================================================================== */
+const WORKER_URL = 'https://japan-travel.haochen-japan.workers.dev';
+
+const FAV_STORE = 'jt_favs';   // 與主站共用
+const $ = id => document.getElementById(id);
+
+/* ---- 從 PREF 建立「景點/美食名稱 → 真實資料」索引 ---- */
+const nameIndex = {};
+for (const id in PREF) {
+  const p = PREF[id];
+  (p.sights || []).forEach(s => { nameIndex[s.name.trim()] = { id:+id, tab:'sights', item:s, prefName:p.name }; });
+  (p.food   || []).forEach(f => { nameIndex[f.name.trim()] = { id:+id, tab:'food',   item:f, prefName:p.name }; });
+}
+// 去掉分隔/標點符號再比，讓「築地・豊洲」和「築地豊洲」視為相同
+function normalizeName(s){ return (s||'').replace(/[・･·、,，。．\s（）()「」『』【】〜～\-—_]/g,'').trim(); }
+// 字元 bigram Sørensen–Dice 相似度（處理插入/刪除/順序小差異）
+function diceSim(a, b){
+  if (a === b) return 1;
+  if (a.length < 2 || b.length < 2) return a === b ? 1 : 0;
+  const bg = s => { const m = {}; for (let i=0;i<s.length-1;i++){ const g=s.slice(i,i+2); m[g]=(m[g]||0)+1; } return m; };
+  const A = bg(a), B = bg(b);
+  let inter = 0, la = 0, lb = 0;
+  for (const g in A){ la += A[g]; if (B[g]) inter += Math.min(A[g], B[g]); }
+  for (const g in B){ lb += B[g]; }
+  return (2 * inter) / (la + lb);
+}
+// 名稱比對：精確 → 正規化包含 → Dice 相似度最高者（同縣加權），低於門檻才判定查無
+function matchItem(name, pref){
+  const n = (name || '').trim();
+  if (nameIndex[n]) return nameIndex[n];
+  const nn = normalizeName(n);
+  const pn = normalizeName(pref);
+  let best = null, bestScore = 0;
+  for (const k in nameIndex){
+    const entry = nameIndex[k];
+    const kn = normalizeName(k);
+    let score;
+    if (kn === nn) score = 1;
+    else if (kn.includes(nn) || nn.includes(kn)) score = 0.9;
+    else score = diceSim(kn, nn);
+    if (pn && normalizeName(entry.prefName) === pn) score += 0.15;   // 同縣加權，消除跨縣誤配
+    if (score > bestScore){ bestScore = score; best = entry; }
+  }
+  return bestScore >= 0.5 ? best : null;
+}
+
+/* ---- 餵給模型的精簡素材（名稱後面 [ ] 是主題標籤，供模型依偏好挑選） ---- */
+function itemStr(x){
+  const t = (x.tags || []).slice(0,2).join('・');
+  return x.name + (t ? `[${t}]` : '');
+}
+/* 地區關鍵字 → region key。命中任一縣名/城市/地區詞，就選出該 region 全部縣（提供「附近」的選擇範圍） */
+const REGION_KEYS = {
+  hokkaido:['北海道','札幌','函館','小樽','旭川'],
+  tohoku:['東北','仙台','青森','岩手','宮城','秋田','山形','福島'],
+  kanto:['關東','関東','首都圈','首都圏','東京','橫濱','横浜','鎌倉','箱根','日光','茨城','栃木','群馬','埼玉','千葉','神奈川'],
+  chubu:['中部','東海','甲信越','北陸','名古屋','金沢','金澤','松本','輕井澤','軽井沢','高山','白川郷','富士','河口湖','熱海','伊豆','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','靜岡','愛知'],
+  kansai:['關西','関西','近畿','京阪神','大阪','京都','神戶','神户','姫路','難波','梅田','三重','滋賀','兵庫','奈良','和歌山'],
+  chugoku:['中國','中国','山陰','山陽','広島','廣島','鳥取','島根','岡山','山口'],
+  shikoku:['四國','四国','徳島','德島','香川','愛媛','高知','高松','道後'],
+  kyushu:['九州','博多','福岡','佐賀','長崎','熊本','大分','別府','湯布院','由布院','宮崎','鹿児島','鹿兒島'],
+  okinawa:['沖繩','沖縄','琉球','那霸','那覇','石垣'],
+};
+// 掃描需求文字，回傳命中的縣 id 陣列；沒命中任何地區則回 null（改送全 47 縣精簡版）
+function selectIds(text){
+  const t = text || '';
+  const regs = new Set();
+  for (const rk in REGION_KEYS){ if (REGION_KEYS[rk].some(k => t.includes(k))) regs.add(rk); }
+  if (!regs.size) return null;
+  return Object.keys(PREF).filter(id => regs.has(PREF[id].region));
+}
+function buildLines(ids, ns, nf){
+  const lines = [];
+  for (const id of ids){
+    const p = PREF[id];
+    const region = (REGION[p.region] && REGION[p.region].label) || p.region;
+    const sights = (p.sights || []).slice(0,ns).map(itemStr).join('、');
+    const food   = (p.food   || []).slice(0,nf).map(itemStr).join('、');
+    lines.push(`【${p.name}】(${region}) ${sights||'—'}｜美食:${food||'—'}`);
+  }
+  return lines.join('\n');
+}
+// 有指定地區 → 只送那些縣，depth 由大到小自動挑到塞得下（refine 會再帶前一份行程，故壓在 7600 字內）；沒指定 → 全 47 縣精簡
+function buildContext(reqText){
+  const ids = selectIds(reqText) || Object.keys(PREF);
+  const budget = 7600 - (reqText || '').length;
+  const CAPS = [[99,99],[15,15],[12,12],[10,10],[8,8],[6,6],[5,4]];
+  for (const [sc,fc] of CAPS){
+    const ctx = buildLines(ids, sc, fc);
+    if (ctx.length <= budget) return ctx;
+  }
+  return buildLines(ids, 5, 4);
+}
+
+const MODEL = 'llama-3.3-70b-versatile';   // Groq 免費層模型
+
+const SYSTEM = `你是專業的日本旅遊行程規劃師。使用者會給你旅遊需求。
+你只能使用「可用素材」裡列出的真實景點與美食名稱來排行程。name 欄位必須與素材中的名稱「一字不差、完整照抄」，包含所有符號（如中點「・」）、假名與漢字，禁止縮寫、翻譯、拆開或改寫（例如素材是「築地・豊洲の寿司」就不可以只寫「築地の寿司」）。不要編造素材裡沒有的地點。
+素材中每個名稱後面 [ ] 內是主題標籤（例如溫泉、拉麵、歷史、海鮮、夜景），那是給你參考用、不是名稱的一部分。請依使用者的喜好，優先挑選標籤相符的項目；但 name 欄位只寫 [ 前面的名稱，絕對不要把 [ ] 標籤寫進 name。
+排出逐日行程，每天 2-4 個項目，同一天盡量集中在同一地區、動線順。景點與美食都可以排。
+why 用一句繁體中文說明為什麼值得。area 填當天主要地區。tip 給一段交通或訂房小提醒。
+只回傳一個 JSON 物件，不要有任何多餘文字或 markdown。JSON 格式如下：
+{"title":"行程標題","days":[{"day":1,"area":"當天主要地區","items":[{"pref":"縣名","name":"素材裡的真實景點或美食名","kind":"景點或美食","why":"一句話說明"}]}],"tip":"交通或訂房小提醒"}`;
+
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { $('prompt').value = c.textContent; }));
+
+/* ---- 對話狀態（支援微調） ---- */
+let history = [];
+let lastPlan = null;
+
+async function callAI(){
+  const messages = [{ role:'system', content:SYSTEM }, ...history];
+  const resp = await fetch(WORKER_URL, {
+    method:'POST', headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      temperature: 0.7,
+      max_tokens: 2048,
+      response_format: { type: 'json_object' }
+    })
+  });
+  if (!resp.ok){
+    let msg = `HTTP ${resp.status}`;
+    try { const e = await resp.json(); if (e.error && e.error.message) msg = e.error.message; } catch {}
+    if (resp.status === 429) msg = '目前使用人數較多（免費額度暫時用盡），過一下再試';
+    throw new Error(msg);
+  }
+  const data = await resp.json();
+  const text = data?.choices?.[0]?.message?.content || '';
+  if (!text) throw new Error('模型沒有回傳內容');
+  return text;
+}
+
+async function generate(refineText){
+  const out = $('out');
+  if (WORKER_URL.includes('YOUR-SUBDOMAIN')){
+    out.innerHTML = '<span class="status">尚未設定後端（Worker）網址。請站長依 worker.js 說明部署後，把網址填進 ai-planner.html 的 WORKER_URL。</span>';
+    return;
+  }
+
+  if (refineText){
+    if (lastPlan) history.push({ role:'assistant', content: JSON.stringify(lastPlan) });
+    history.push({ role:'user', content: `請依這個要求調整上面的行程，一樣只用素材裡的真實名稱：${refineText}` });
+  } else {
+    const req = $('prompt').value.trim();
+    if (!req){ out.innerHTML = '<span class="status">請先描述你的旅遊需求。</span>'; return; }
+    history = [{ role:'user', content:`使用者需求：${req}\n\n可用素材（只能用這些真實景點與美食名稱）：\n${buildContext(req)}` }];
+  }
+
+  $('go').disabled = true;
+  out.innerHTML = '<span class="spinner"></span> AI 依 47 縣資料排行程中…';
+  try {
+    const text = await callAI();
+    let plan;
+    try { plan = JSON.parse(text); } catch { out.innerHTML = '<span class="status">回傳格式解析失敗，再試一次。</span>'; return; }
+    lastPlan = plan;
+    renderPlan(plan);
+  } catch (err){
+    out.innerHTML = `<span class="status">生成失敗：${escapeHtml(String(err.message||err))}</span>`;
+  } finally {
+    $('go').disabled = false;
+  }
+}
+$('go').addEventListener('click', () => generate(null));
+
+/* ---- 渲染行程：把 AI 項目對回真實資料 ---- */
+function renderPlan(plan){
+  const days = (plan.days || []).map(d => {
+    const items = (d.items || []).map(it => {
+      const m = matchItem(it.name, it.pref);
+      const kindClass = (it.kind && it.kind.includes('美食')) ? 'food' : 'sight';
+      const kindLabel = (it.kind && it.kind.includes('美食')) ? '美食' : '景點';
+      if (m){
+        const img = m.item.img
+          ? `<img class="item-thumb" src="${m.item.img}" loading="lazy" onerror="this.outerHTML='<div class=&quot;item-noimg&quot;>${m.item.icon||'📍'}</div>'">`
+          : `<div class="item-noimg">${m.item.icon||'📍'}</div>`;
+        const meta = [m.item.where, m.item.price, m.item.time].filter(Boolean).join(' ・ ');
+        return `<div class="item">${img}
+          <div class="item-body">
+            <div class="item-name"><a href="index.html?pref=${m.id}" target="_blank" rel="noopener">${escapeHtml(m.item.name)}</a>
+              <span class="kind ${kindClass}">${kindLabel}</span></div>
+            <div class="item-why">${escapeHtml(it.why||'')}</div>
+            <div class="item-meta">${escapeHtml(m.prefName)}${meta ? ' ・ '+escapeHtml(meta) : ''}</div>
+          </div></div>`;
+      }
+      return `<div class="item"><div class="item-noimg">📍</div>
+        <div class="item-body">
+          <div class="item-name">${escapeHtml(it.name||'')} <span class="kind ${kindClass}">${kindLabel}</span></div>
+          <div class="item-why">${escapeHtml(it.why||'')}</div>
+          <div class="unmatched">（本站資料查無此項，無法存進行程）</div>
+        </div></div>`;
+    }).join('');
+    return `<div class="day"><div class="day-head"><span>Day ${d.day}</span><span class="day-area">${escapeHtml(d.area||'')}</span></div>${items}</div>`;
+  }).join('');
+
+  $('out').innerHTML =
+    `<div class="plan-title">${escapeHtml(plan.title||'你的日本行程')}</div>` +
+    days +
+    (plan.tip ? `<div class="plan-tip">${escapeHtml(plan.tip)}</div>` : '') +
+    `<div class="save-bar">
+       <button id="saveTrip">把整份行程存進「我的行程」</button>
+       <span id="saveNote"></span>
+     </div>
+     <div class="refine">
+       <input type="text" id="refineInput" placeholder="想調整？例：Day2 太累換輕鬆點、加一個溫泉">
+       <button class="btn-sm" id="refineBtn">調整</button>
+     </div>`;
+
+  $('saveTrip').addEventListener('click', () => saveToTrip(plan));
+  $('refineBtn').addEventListener('click', () => { const t = $('refineInput').value.trim(); if (t) generate(t); });
+  $('refineInput').addEventListener('keydown', e => { if (e.key==='Enter'){ const t=e.target.value.trim(); if(t) generate(t); } });
+}
+
+/* ---- 寫進主站的 jt_favs（合併既有、帶 Day 分組） ---- */
+function saveToTrip(plan){
+  let favs = {};
+  try { favs = JSON.parse(localStorage.getItem(FAV_STORE)) || {}; } catch {}
+  let added = 0, skipped = 0;
+  (plan.days || []).forEach(d => {
+    (d.items || []).forEach(it => {
+      const m = matchItem(it.name, it.pref);
+      if (!m){ skipped++; return; }
+      favs[`${m.id}|${m.tab}|${m.item.name}`] = { id:m.id, tab:m.tab, name:m.item.name, day:+d.day || 0 };
+      added++;
+    });
+  });
+  localStorage.setItem(FAV_STORE, JSON.stringify(favs));
+  $('saveNote').innerHTML =
+    `<span class="saved-note">✓ 已加入 ${added} 個景點/美食${skipped?`（${skipped} 個查無資料略過）`:''}，</span>` +
+    `<a href="index.html" target="_blank" rel="noopener" style="font-weight:800;color:var(--red)">打開「我的行程」</a> 看地圖動線與預算`;
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# 開發用臨時檔（contact sheet、驗證頁、除錯截圖），只限專案根目錄
+/_*.html
+/*.png
+
+# wrangler
+.wrangler/
+node_modules/
