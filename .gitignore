@@ -1,6 +1,9 @@
 # 開發用臨時檔（contact sheet、驗證頁、除錯截圖），只限專案根目錄
 /_*.html
 /*.png
+# 例外：PWA app icon 要進版控
+!/icon-192.png
+!/icon-512.png
 
 # wrangler
 .wrangler/

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- 背景：賽璐璐天空 -->
+  <rect width="512" height="512" fill="#7cccef"/>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a7e0f6"/>
+      <stop offset="1" stop-color="#7cccef"/>
+    </linearGradient>
+  </defs>
+  <!-- 日之丸紅日 -->
+  <circle cx="256" cy="212" r="118" fill="#ff5f86"/>
+  <circle cx="256" cy="212" r="118" fill="none" stroke="#26263f" stroke-width="10"/>
+  <!-- 雲 -->
+  <g fill="#ffffff">
+    <ellipse cx="120" cy="150" rx="46" ry="24"/>
+    <ellipse cx="158" cy="140" rx="34" ry="20"/>
+    <ellipse cx="404" cy="300" rx="42" ry="22"/>
+    <ellipse cx="372" cy="308" rx="28" ry="16"/>
+  </g>
+  <!-- 鳥居（實心，賽璐璐描邊） -->
+  <g fill="#e0392f" stroke="#26263f" stroke-width="10" stroke-linejoin="round">
+    <!-- 笠木（頂橫樑） -->
+    <path d="M96 226 q160 -34 320 0 l0 30 q-160 -30 -320 0 Z"/>
+    <!-- 島木 -->
+    <rect x="112" y="262" width="288" height="26" rx="6"/>
+    <!-- 貫（下橫樑） -->
+    <rect x="150" y="322" width="212" height="24" rx="5"/>
+    <!-- 左柱 -->
+    <path d="M168 288 l-14 150 l40 0 l-10 -150 Z"/>
+    <!-- 右柱 -->
+    <path d="M344 288 l14 150 l-40 0 l10 -150 Z"/>
+  </g>
+  <!-- 地平線草地 -->
+  <path d="M0 438 q256 -24 512 0 l0 74 l-512 0 Z" fill="#7fe0c4"/>
+  <path d="M0 438 q256 -24 512 0" fill="none" stroke="#26263f" stroke-width="10"/>
+</svg>
