@@ -761,20 +761,6 @@ header {
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.65} }
 
-.w-features {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 0.875rem; width: 100%;
-}
-.w-feat {
-  background: #fff; border: 2.5px solid var(--ink);
-  border-radius: 0.9rem; padding: 1.25rem; text-align: left;
-  box-shadow: 4px 4px 0 var(--ink); transition: transform .15s, box-shadow .15s;
-}
-.w-feat:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
-.w-feat-icon { font-size: 1.75rem; margin-bottom: 0.625rem; }
-.w-feat-name { font-size: 1rem; font-weight: 800; margin-bottom: 0.3125rem; }
-.w-feat-desc { font-size: 0.875rem; color: var(--text2); }
-
 /* 縣市比較模式 */
 .compare-zone {
   width: 100%; background: #fff;
@@ -1318,7 +1304,6 @@ header {
   .search-results { min-width: 0; width: min(20rem, calc(100vw - 1.7rem)); }
   .season-switch { gap: 1px; padding: 2px; }
   .season-btn { width: 1.5rem; height: 1.5rem; }
-  .w-features { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }
   .quiz-picks { grid-template-columns: 1fr; }
   /* 手機窄螢幕：住宿卡改回上下堆疊，圖在上 */
@@ -1431,28 +1416,6 @@ header {
       <div class="cat-explore" id="quiz-entry"></div>
       <div class="region-overview" id="region-overview"></div>
       <div class="compare-zone" id="compare-zone"></div>
-      <div class="w-features">
-        <div class="w-feat">
-          <div class="w-feat-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4z"/><path d="M9 4v14M15 6v14"/></svg></div>
-          <div class="w-feat-name">互動地圖</div>
-          <div class="w-feat-desc">縮放拖拽、點選縣市</div>
-        </div>
-        <div class="w-feat">
-          <div class="w-feat-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18M5 11v1a7 7 0 0 0 14 0v-1z"/><path d="M9 4c-.8 1.5.8 2.5 0 4M14 4c-.8 1.5.8 2.5 0 4"/></svg></div>
-          <div class="w-feat-name">美食攻略</div>
-          <div class="w-feat-desc">在地必吃推薦</div>
-        </div>
-        <div class="w-feat">
-          <div class="w-feat-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M6 20v-5h12v5M3.5 15l8.5-3 8.5 3M8.5 12V9h7v3M6.5 9l5.5-2.5L17.5 9M11 6.5V4.5h2v2"/></svg></div>
-          <div class="w-feat-name">景點導覽</div>
-          <div class="w-feat-desc">時程規劃與旅遊秘訣</div>
-        </div>
-        <div class="w-feat">
-          <div class="w-feat-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16c0-5 4-9 9-9h2a4 4 0 0 1 4 4v3a2 2 0 0 1-2 2H4z"/><path d="M4 13h7M7 19l1.5-3M15 19l1.5-3"/><circle cx="15" cy="13" r=".6"/></svg></div>
-          <div class="w-feat-name">交通指南</div>
-          <div class="w-feat-desc">JR、地鐵、巴士全收錄</div>
-        </div>
-      </div>
     </div>
 
     <!-- 縣市詳情（點擊後顯示，內容由 JS 生成） -->
@@ -1515,8 +1478,8 @@ header {
   <button type="button" id="update-bar-close" aria-label="關閉">×</button>
 </div>
 
-<script src="data.js?v=226"></script>
-<script src="app.js?v=226"></script>
+<script src="data.js?v=227"></script>
+<script src="app.js?v=227"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
