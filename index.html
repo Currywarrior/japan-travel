@@ -1282,13 +1282,19 @@ header {
     height: auto; min-height: 100vh;
   }
   #info-panel { overflow: visible; }
-  #welcome { padding: 1.25rem; }
-  /* 手機版 header：搜尋框改自適應，不再固定 13rem 撐爆視窗 */
+  /* 手機：底部多留空間，避免內容被常駐的「我的行程」FAB 蓋住 */
+  #welcome { padding: 1.25rem 1.25rem 6rem; gap: 1.3rem; }
+  /* 手機：主視覺插圖縮小，讓說明文字不用滑那麼久就能離開 FAB 蓋住的範圍 */
+  .w-hero-art { max-width: 13rem; }
+  /* 手機版 header：搜尋框改自適應，不再固定 13rem 撐爆視窗；季節鈕也縮小讓位給搜尋框 */
   header { gap: 0.55rem; padding: 0 0.85rem; }
   .logo-sub { display: none; }
   .search-wrap { flex: 1; min-width: 0; }
   #search-input, #search-input:focus { width: 100%; }
+  #search-input { text-overflow: ellipsis; }
   .search-results { min-width: 0; width: min(20rem, calc(100vw - 1.7rem)); }
+  .season-switch { gap: 1px; padding: 2px; }
+  .season-btn { width: 1.5rem; height: 1.5rem; }
   .w-features { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }
   .quiz-picks { grid-template-columns: 1fr; }
@@ -1473,8 +1479,8 @@ header {
   <button type="button" id="install-bar-close" aria-label="關閉">×</button>
 </div>
 
-<script src="data.js?v=224"></script>
-<script src="app.js?v=224"></script>
+<script src="data.js?v=225"></script>
+<script src="app.js?v=225"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

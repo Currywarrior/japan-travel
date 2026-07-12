@@ -148,14 +148,19 @@ async function initMap() {
     .fitExtent([[8, 8], [W - 8, H - 8]], JP_BOUNDS);
   const path = d3.geoPath().projection(projection);
 
+  // 手機的地圖面板矮（44vh），同樣的地方名字級數擺在小地圖上會擠成一團，
+  // 所以字級／描邊粗細都跟著面板實際高度縮小，縮放時仍照這個縮小後的基準值等比例算
+  const labelFontBase   = H < 400 ? 8   : 13;
+  const labelStrokeBase = H < 400 ? 2.5 : 4;
+
   zoom = d3.zoom()
     .scaleExtent([0.5, 16])
     .on('zoom', e => {
       g.attr('transform', e.transform);
       const k = e.transform.k;
       g.selectAll('.region-label')
-        .attr('font-size', String(13 / k))
-        .attr('stroke-width', String(4 / k))
+        .attr('font-size', String(labelFontBase / k))
+        .attr('stroke-width', String(labelStrokeBase / k))
         .style('opacity', k > 3.5 ? Math.max(0, 1 - (k - 3.5) / 2) : 1);
       hoverLabelK = k;
       if (favLayer) favLayer.selectAll('.fav-heart').attr('font-size', String(15 / k));
@@ -206,9 +211,9 @@ async function initMap() {
       .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
       .attr('pointer-events', 'none')
       .attr('font-family', "'Noto Sans TC', system-ui, sans-serif")
-      .attr('font-size', '13').attr('font-weight', '900')
+      .attr('font-size', String(labelFontBase)).attr('font-weight', '900')
       .attr('fill', r.color)
-      .attr('stroke', 'rgba(6,6,15,0.92)').attr('stroke-width', '4')
+      .attr('stroke', 'rgba(6,6,15,0.92)').attr('stroke-width', String(labelStrokeBase))
       .attr('stroke-linejoin', 'round').attr('paint-order', 'stroke fill')
       .text(r.label);
   });

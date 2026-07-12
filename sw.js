@@ -1,6 +1,6 @@
 // 日本旅遊完全攻略 — Service Worker（離線快取）
 // 發布新版時把 CACHE 的版本號往上加一，瀏覽器會重新 precache 並清掉舊快取。
-const CACHE = 'jt-cache-v224';
+const CACHE = 'jt-cache-v225';
 
 // App shell：離線時最起碼要能開站的核心檔（相對路徑，兼容 GitHub Pages 子路徑）
 const CORE = [
