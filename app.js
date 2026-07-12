@@ -2075,6 +2075,23 @@ document.getElementById('install-bar-close').addEventListener('click', () => {
   document.getElementById('install-bar').classList.remove('show');
 });
 
+// ── PWA 更新提示 ──────────────────────────────────────────────────────────────
+// sw.js 裡已經有 skipWaiting + clients.claim，新版會在背景裝好並自動接管，但接管當下
+// 這一頁的內容早就載入完了，不會自己換新——controllerchange 事件就是「接管換人」的訊號，
+// 接到就跳提示卡讓使用者按一下重新整理，不用像自然情況那樣等到下次重開才看到新內容。
+// hadController 用來排除「第一次安裝」也會觸發一次 controllerchange 的情況，那不算更新。
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) document.getElementById('update-bar').classList.add('show');
+  });
+}
+
+document.getElementById('update-bar-btn').addEventListener('click', () => location.reload());
+document.getElementById('update-bar-close').addEventListener('click', () => {
+  document.getElementById('update-bar').classList.remove('show');
+});
+
 if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !isStandaloneMode()) showInstallBar('ios');
 
 // ── 啟動 ──────────────────────────────────────────────────────────────────────

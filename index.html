@@ -574,6 +574,29 @@ header {
 }
 #install-bar-close:hover { background: var(--sakura2); color: var(--ink); }
 
+/* PWA 更新提示卡：跟安裝提示卡共用左下角位置（實務上兩者不會同時出現） */
+#update-bar {
+  position: fixed; left: 1.2rem; bottom: 1.2rem; z-index: 200;
+  display: none; align-items: center; gap: 0.6rem;
+  max-width: min(22rem, calc(100vw - 2.4rem));
+  background: #fff; border: 3px solid var(--ink); border-radius: 1.1rem;
+  box-shadow: 4px 4px 0 var(--ink); padding: 0.7rem 0.8rem;
+  animation: fabpop .28s ease;
+}
+#update-bar.show { display: flex; }
+#update-bar-btn {
+  flex-shrink: 0; font-family: inherit; font-weight: 800; font-size: 0.82rem; color: #fff;
+  background: var(--sky); border: 2.5px solid var(--ink); border-radius: 0.6rem;
+  padding: 0.4em 0.8em; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); transition: transform .12s, box-shadow .12s;
+}
+#update-bar-btn:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+#update-bar-close {
+  flex-shrink: 0; width: 1.5rem; height: 1.5rem; display: flex; align-items: center; justify-content: center;
+  border-radius: 0.4rem; font-size: 1.1rem; font-weight: 800; color: var(--text3); line-height: 1;
+  cursor: pointer; background: none; border: none; font-family: inherit;
+}
+#update-bar-close:hover { background: var(--sakura2); color: var(--ink); }
+
 /* ── 地圖面板 ─────────────────────────────────────── */
 #map-panel {
   grid-area: map;
@@ -1479,8 +1502,21 @@ header {
   <button type="button" id="install-bar-close" aria-label="關閉">×</button>
 </div>
 
-<script src="data.js?v=225"></script>
-<script src="app.js?v=225"></script>
+<!-- PWA 更新提示卡：偵測到背景已裝好新版 Service Worker（controllerchange）才顯示，跟安裝提示卡共用位置，兩者不會同時出現 -->
+<div id="update-bar" role="status">
+  <span class="install-ic" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 12a8 8 0 1 1-2.7-5.9"/>
+      <path d="M20 4v5h-5"/>
+    </svg>
+  </span>
+  <span class="install-text">有新版本可以用了</span>
+  <button type="button" id="update-bar-btn">重新整理</button>
+  <button type="button" id="update-bar-close" aria-label="關閉">×</button>
+</div>
+
+<script src="data.js?v=226"></script>
+<script src="app.js?v=226"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
