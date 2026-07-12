@@ -923,6 +923,10 @@ const UI_ICONS = {
   plane:     svgIcon('<path d="M12 3c.9 0 1.3 1 1.3 2.6v3.2l7.2 4v1.8l-7.2-2v3.1l1.9 1.4v1.3L12 21l-3.2-1.4v-1.3l1.9-1.4v-3.1l-7.2 2v-1.8l7.2-4V5.6C10.7 4 11.1 3 12 3z"/>'),
   bike:      svgIcon('<circle cx="6" cy="16" r="3"/><circle cx="18" cy="16" r="3"/><path d="M6 16l4-7h5l3 7M9 9h3"/>'),
   link:      svgIcon('<path d="M9 14a4 4 0 0 0 6 .5l2.5-2.5a4 4 0 0 0-5.7-5.7L10.5 7.6"/><path d="M15 10a4 4 0 0 0-6-.5L6.5 12a4 4 0 0 0 5.7 5.7L13.5 16.4"/>'),
+  // 天氣預報 / 花費記帳用
+  cloud:     svgIcon('<path d="M7 18a4 4 0 1 1 .3-7.98A5.5 5.5 0 0 1 17.9 12 4 4 0 0 1 17 18z"/>'),
+  rain:      svgIcon('<path d="M7 14.5a4 4 0 1 1 .3-7.98A5.5 5.5 0 0 1 17.9 8.5 4 4 0 0 1 17 14.5z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/>'),
+  wallet:    svgIcon('<path d="M4 8a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1h-3.5a2.5 2.5 0 0 0 0 5H19v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"/><circle cx="16" cy="12.5" r=".6"/>'),
 };
 
 const CATEGORIES = [
@@ -1387,12 +1391,14 @@ function renderCompare() {
 }
 
 // ── 旅遊工具箱 ────────────────────────────────────────────────────────────────
-// 四個出發前後實用的小工具：匯率換算 / 打包清單 / 季節速查 / 預算估算
+// 六個出發前後實用的小工具：匯率換算 / 打包清單 / 季節速查 / 天氣預報 / 預算估算 / 花費記帳
 const TOOL_TABS = [
-  { key: 'fx',     ic: 'coin',     label: '匯率換算' },
-  { key: 'pack',   ic: 'bag',      label: '打包清單' },
-  { key: 'season', ic: 'sakura',   label: '季節速查' },
-  { key: 'budget', ic: 'calendar', label: '預算估算' },
+  { key: 'fx',      ic: 'coin',     label: '匯率換算' },
+  { key: 'pack',    ic: 'bag',      label: '打包清單' },
+  { key: 'season',  ic: 'sakura',   label: '季節速查' },
+  { key: 'weather', ic: 'cloud',    label: '天氣預報' },
+  { key: 'budget',  ic: 'calendar', label: '預算估算' },
+  { key: 'expense', ic: 'wallet',   label: '花費記帳' },
 ];
 let toolTab = 'fx';
 
@@ -1463,7 +1469,7 @@ function showToolbox(tab = 'fx') {
     <div class="pv-header">
       <div class="pv-region-badge" style="background:#7cccef1a;color:var(--sky);border-color:#7cccef55">旅遊工具箱</div>
       <div class="pv-name">旅遊工具箱</div>
-      <div class="pv-name-en">匯率換算 · 打包清單 · 季節速查 · 預算估算，出發前一次備齊</div>
+      <div class="pv-name-en">匯率換算 · 打包清單 · 季節速查 · 天氣預報 · 預算估算 · 花費記帳，出發前後一次備齊</div>
     </div>
     <div class="pv-content" id="pv-content">
       <div class="tool-tabs">
@@ -1488,10 +1494,12 @@ function showToolbox(tab = 'fx') {
 function renderToolTab() {
   const body = document.getElementById('tool-body');
   if (!body) return;
-  if      (toolTab === 'fx')     renderFxTool(body);
-  else if (toolTab === 'pack')   renderPackTool(body);
-  else if (toolTab === 'season') renderSeasonTable(body);
-  else if (toolTab === 'budget') renderBudgetTool(body);
+  if      (toolTab === 'fx')      renderFxTool(body);
+  else if (toolTab === 'pack')    renderPackTool(body);
+  else if (toolTab === 'season')  renderSeasonTable(body);
+  else if (toolTab === 'weather') renderWeatherTool(body);
+  else if (toolTab === 'budget')  renderBudgetTool(body);
+  else if (toolTab === 'expense') renderExpenseTool(body);
 }
 
 const FX_TAG = { default: '預設值', live: '即時匯率', manual: '手動' };
@@ -1628,6 +1636,108 @@ function renderSeasonTable(body) {
     b.addEventListener('click', () => gotoPref(+b.dataset.id)));
 }
 
+// ── 天氣預報 ──────────────────────────────────────────────────────────────
+// 地圖上的 prefCentroids 是投影過的像素座標，查天氣要用真實經緯度，所以另外存一份
+// 47 都道府県廳所在地座標（Open-Meteo 免金鑰、支援瀏覽器端直接 fetch）
+const PREF_LATLON = {
+  Hokkaido:[43.06,141.35],  Aomori:[40.82,140.74],  Iwate:[39.70,141.15],   Miyagi:[38.27,140.87],
+  Akita:[39.72,140.10],     Yamagata:[38.24,140.36],Fukushima:[37.75,140.47],Ibaraki:[36.34,140.45],
+  Tochigi:[36.57,139.88],   Gunma:[36.39,139.06],   Saitama:[35.86,139.65], Chiba:[35.61,140.12],
+  Tokyo:[35.69,139.69],     Kanagawa:[35.44,139.64],Niigata:[37.90,139.02], Toyama:[36.70,137.21],
+  Ishikawa:[36.59,136.63],  Fukui:[36.07,136.22],   Yamanashi:[35.66,138.57],Nagano:[36.65,138.18],
+  Gifu:[35.39,136.72],      Shizuoka:[34.98,138.38],Aichi:[35.18,136.91],   Mie:[34.73,136.51],
+  Shiga:[35.00,135.87],     Kyoto:[35.02,135.76],   Osaka:[34.69,135.50],   Hyogo:[34.69,135.18],
+  Nara:[34.69,135.83],      Wakayama:[34.23,135.17],Tottori:[35.50,134.24], Shimane:[35.47,133.05],
+  Okayama:[34.66,133.93],   Hiroshima:[34.40,132.46],Yamaguchi:[34.19,131.47],Tokushima:[34.07,134.56],
+  Kagawa:[34.34,134.05],    Ehime:[33.84,132.77],   Kochi:[33.56,133.53],   Fukuoka:[33.59,130.40],
+  Saga:[33.25,130.30],      Nagasaki:[32.75,129.87],Kumamoto:[32.79,130.74],Oita:[33.24,131.61],
+  Miyazaki:[31.91,131.42],  Kagoshima:[31.56,130.56],Okinawa:[26.21,127.68],
+};
+
+// WMO 天氣代碼（Open-Meteo daily.weathercode）簡化成幾種好懂的分類
+function weatherCodeInfo(code) {
+  if (code === 0) return { label: '晴朗', ic: 'summer' };
+  if ([1, 2, 3].includes(code)) return { label: '多雲', ic: 'cloud' };
+  if ([45, 48].includes(code)) return { label: '起霧', ic: 'cloud' };
+  if ([95, 96, 99].includes(code)) return { label: '雷雨', ic: 'rain' };
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return { label: '下雪', ic: 'snow' };
+  return { label: '有雨', ic: 'rain' };   // 51/53/55 毛毛雨、61/63/65 雨、80/81/82 陣雨等剩下的都算有雨
+}
+
+let weatherPrefId = 13;             // 預設東京
+const weatherCache = new Map();     // prefId -> { time, daily }：30 分鐘內切回同縣不用重打 API
+
+function renderWeatherTool(body) {
+  const ids = Object.keys(PREF).map(Number);
+  const groups = {};
+  ids.forEach(i => { (groups[PREF[i].region] ||= []).push(i); });
+  let optHtml = '';
+  for (const key in REGION) {
+    if (!groups[key]) continue;
+    optHtml += `<optgroup label="${REGION[key].label}">`;
+    groups[key].forEach(i => {
+      optHtml += `<option value="${i}"${i === weatherPrefId ? ' selected' : ''}>${PREF[i].name}</option>`;
+    });
+    optHtml += `</optgroup>`;
+  }
+
+  body.innerHTML = `
+    <div class="tool-card">
+      <div class="tool-card-head">未來天氣預報<select class="wt-sel" id="wt-sel">${optHtml}</select></div>
+      <div id="wt-body">載入中…</div>
+      <div class="wt-note">資料來源 Open-Meteo，僅供行程參考，出發前請再次確認。</div>
+    </div>`;
+
+  body.querySelector('#wt-sel').addEventListener('change', e => {
+    weatherPrefId = +e.target.value;
+    renderWeatherTool(body);
+  });
+
+  loadWeather(weatherPrefId, body);
+}
+
+function loadWeather(prefId, body) {
+  const cached = weatherCache.get(prefId);
+  if (cached && Date.now() - cached.time < 30 * 60 * 1000) { paintWeather(cached.daily, body); return; }
+
+  const ll = PREF_LATLON[PREF[prefId].nameEn];
+  if (!ll) return;
+
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ll[0]}&longitude=${ll[1]}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=7`)
+    .then(r => r.json())
+    .then(d => {
+      if (!d?.daily?.time) throw new Error('bad weather data');
+      weatherCache.set(prefId, { time: Date.now(), daily: d.daily });
+      if (weatherPrefId === prefId) paintWeather(d.daily, body);
+    })
+    .catch(() => {
+      const el = body.querySelector('#wt-body');
+      if (el) el.innerHTML = `<div class="wt-error">天氣資料暫時抓不到，晚點再試一次。</div>`;
+    });
+}
+
+const WT_WEEKDAY = ['日', '一', '二', '三', '四', '五', '六'];
+function paintWeather(daily, body) {
+  const el = body.querySelector('#wt-body');
+  if (!el) return;
+  const html = daily.time.map((t, i) => {
+    const d = new Date(t + 'T00:00:00+09:00');
+    const info = weatherCodeInfo(daily.weathercode[i]);
+    const hi = Math.round(daily.temperature_2m_max[i]);
+    const lo = Math.round(daily.temperature_2m_min[i]);
+    return `
+      <div class="wt-day${i === 0 ? ' wt-day--today' : ''}">
+        <div class="wt-wd">${i === 0 ? '今天' : WT_WEEKDAY[d.getDay()]}</div>
+        <div class="wt-md">${d.getMonth() + 1}/${d.getDate()}</div>
+        <div class="wt-ic">${UI_ICONS[info.ic]}</div>
+        <div class="wt-label">${info.label}</div>
+        <div class="wt-temp">${hi}°<span class="wt-lo">${lo}°</span></div>
+        <div class="wt-pop">${daily.precipitation_probability_max[i]}% 降雨</div>
+      </div>`;
+  }).join('');
+  el.innerHTML = `<div class="wt-grid">${html}</div>`;
+}
+
 function renderBudgetTool(body) {
   const tier   = BUDGET_TIERS.find(t => t.key === budgetTier) || BUDGET_TIERS[1];
   const perDay = tier.stay + tier.food + tier.transit + tier.misc;
@@ -1664,6 +1774,89 @@ function renderBudgetTool(body) {
   body.querySelector('#bg-plus').addEventListener('click',  () => { if (budgetDays < 30) { budgetDays++; renderBudgetTool(body); } });
   body.querySelectorAll('.bg-tier').forEach(b =>
     b.addEventListener('click', () => { budgetTier = b.dataset.tier; renderBudgetTool(body); }));
+}
+
+// ── 花費記帳 ──────────────────────────────────────────────────────────────
+// 分類跟「預算估算」共用 stay/food/transit/misc 四類，方便直接對照「抓的預算 vs 實際花了多少」
+const EXPENSE_CATS = [
+  { key: 'stay',    label: '住宿' },
+  { key: 'food',    label: '餐飲' },
+  { key: 'transit', label: '交通' },
+  { key: 'misc',    label: '景點・雜支' },
+];
+const EXPENSE_STORE = 'jt_expenses';
+let expenses = (() => { try { return JSON.parse(localStorage.getItem(EXPENSE_STORE)) || []; } catch { return []; } })();
+function saveExpenses() { localStorage.setItem(EXPENSE_STORE, JSON.stringify(expenses)); }
+let lastExpenseDay = 1;   // 記住上次記錄的天數，方便同一天連續記好幾筆
+
+function renderExpenseTool(body) {
+  const byDay = {};
+  expenses.forEach(e => (byDay[e.day] ||= []).push(e));
+  const days = Object.keys(byDay).map(Number).sort((a, b) => a - b);
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const catTotal = {};
+  expenses.forEach(e => { catTotal[e.cat] = (catTotal[e.cat] || 0) + e.amount; });
+
+  const tier = BUDGET_TIERS.find(t => t.key === budgetTier) || BUDGET_TIERS[1];
+  const budgetTotal = (tier.stay + tier.food + tier.transit + tier.misc) * budgetDays;
+  const pct = budgetTotal ? Math.min(999, Math.round(total / budgetTotal * 100)) : 0;
+
+  body.innerHTML = `
+    <div class="tool-card">
+      <div class="tool-card-head">花費記帳</div>
+      <div class="ex-add">
+        <input type="number" id="ex-day" min="1" max="30" value="${lastExpenseDay}" title="第幾天"><span class="ex-add-unit">天</span>
+        <select id="ex-cat">${EXPENSE_CATS.map(c => `<option value="${c.key}">${c.label}</option>`).join('')}</select>
+        <input type="number" id="ex-amt" inputmode="numeric" placeholder="¥ 金額" min="0">
+        <input type="text" id="ex-note" placeholder="備註（選填）" maxlength="20">
+        <button type="button" id="ex-add-btn">記一筆</button>
+      </div>
+      ${expenses.length ? days.map(d => `
+        <div class="ex-day">
+          <div class="ex-day-head">Day ${d}</div>
+          ${byDay[d].map(e => `
+            <div class="ex-row">
+              <span class="ex-row-cat">${EXPENSE_CATS.find(c => c.key === e.cat)?.label || e.cat}</span>
+              <span class="ex-row-note">${escAttr(e.note || '')}</span>
+              <span class="ex-row-amt">¥${numFmt(e.amount)}</span>
+              <span class="ex-row-del" data-id="${e.id}" title="刪除">×</span>
+            </div>`).join('')}
+        </div>`).join('') : `<div class="ex-empty">還沒有記錄，出發後花一筆就記一筆。</div>`}
+      ${expenses.length ? `
+        <div class="ex-summary">
+          <div class="ex-sum-cats">
+            ${EXPENSE_CATS.map(c => `<div class="ex-sum-line"><span>${c.label}</span><span>¥${numFmt(catTotal[c.key] || 0)}</span></div>`).join('')}
+          </div>
+          <div class="ex-sum-total">
+            <span>總支出</span>
+            <span class="ex-sum-yen">¥${numFmt(total)}</span>
+            <span class="ex-sum-twd">≈ NT$${numFmt(Math.round(total * fxRate))}</span>
+          </div>
+          <div class="ex-budget-line">對比「預算估算」：${tier.label}・${budgetDays} 天　¥${numFmt(budgetTotal)}
+            <div class="pack-bar"><div class="pack-bar-fill" style="width:${Math.min(100, pct)}%;background:${pct > 100 ? 'var(--red)' : 'var(--mint)'}"></div></div>
+            已花 ${pct}%
+          </div>
+        </div>` : ''}
+    </div>`;
+
+  body.querySelector('#ex-add-btn').addEventListener('click', () => {
+    const day = Math.max(1, +body.querySelector('#ex-day').value || 1);
+    const cat = body.querySelector('#ex-cat').value;
+    const amount = +body.querySelector('#ex-amt').value;
+    const note = body.querySelector('#ex-note').value.trim();
+    if (!amount || amount <= 0) return;
+    lastExpenseDay = day;
+    expenses.push({ id: Date.now() + '_' + Math.floor(Math.random() * 1000), day, cat, amount, note });
+    saveExpenses();
+    renderExpenseTool(body);
+  });
+
+  body.querySelectorAll('.ex-row-del').forEach(el =>
+    el.addEventListener('click', () => {
+      expenses = expenses.filter(e => String(e.id) !== el.dataset.id);
+      saveExpenses();
+      renderExpenseTool(body);
+    }));
 }
 
 // ── 旅人性格測驗 ──────────────────────────────────────────────────────────────
@@ -1832,6 +2025,52 @@ function renderQuizResult(body) {
     b.addEventListener('click', () => showCategory(CATEGORIES.find(c => c.ic === b.dataset.ic))));
   body.querySelector('#quiz-retry').addEventListener('click', () => showQuiz());
 }
+
+// ── PWA 安裝提示 ──────────────────────────────────────────────────────────────
+// Android/桌機 Chrome 會發 beforeinstallprompt，接住它才能自己觸發安裝對話框；
+// iOS Safari 完全沒有這個事件、也不能用程式碼裝，只能教學提示手動「加入主畫面」。
+const INSTALL_DISMISS_KEY = 'jt_install_dismissed';
+let deferredInstallPrompt = null;
+
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function showInstallBar(mode) {
+  if (isStandaloneMode() || localStorage.getItem(INSTALL_DISMISS_KEY)) return;
+  const bar = document.getElementById('install-bar');
+  if (!bar) return;
+  document.getElementById('install-bar-text').textContent = mode === 'ios'
+    ? '輕點下方的分享鈕，選「加入主畫面」，像 App 一樣使用'
+    : '把攻略加到主畫面，離線也能開、像 App 一樣用';
+  document.getElementById('install-bar-btn').style.display = mode === 'ios' ? 'none' : '';
+  bar.classList.add('show');
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showInstallBar('android');
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-bar')?.classList.remove('show');
+});
+
+document.getElementById('install-bar-btn').addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('install-bar').classList.remove('show');
+});
+
+document.getElementById('install-bar-close').addEventListener('click', () => {
+  localStorage.setItem(INSTALL_DISMISS_KEY, '1');
+  document.getElementById('install-bar').classList.remove('show');
+});
+
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !isStandaloneMode()) showInstallBar('ios');
 
 // ── 啟動 ──────────────────────────────────────────────────────────────────────
 initSakura();
