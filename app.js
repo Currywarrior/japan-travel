@@ -1291,16 +1291,10 @@ function buildSeasonSwitch() {
     b.addEventListener('click', () => applySeason(b.dataset.season, true)));
 }
 
-// 手機瀏覽器網址列／PWA 狀態列的顏色跟著季節換膚走，數值取自各季 --body-grad 的頂端色，
-// 這樣狀態列才會跟頁面最上緣的漸層無縫接在一起，不會像原本寫死藍色那樣跟其他季節撞色
-const SEASON_THEME_COLOR = { spring: '#fbdcea', summer: '#a9e2f7', autumn: '#ffd6ab', winter: '#d7e9fa' };
-
 function applySeason(key, save) {
   document.documentElement.dataset.season = key;
   document.querySelectorAll('.season-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.season === key));
-  document.querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', SEASON_THEME_COLOR[key] || '#7cccef');
   if (save) sessionStorage.setItem('jt_season', key);   // 只當次分頁有效，關掉重開就回到跟月份自動
 }
 
