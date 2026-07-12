@@ -152,6 +152,11 @@ async function initMap() {
   // 所以字級／描邊粗細都跟著面板實際高度縮小，縮放時仍照這個縮小後的基準值等比例算
   const labelFontBase   = H < 400 ? 8   : 13;
   const labelStrokeBase = H < 400 ? 2.5 : 4;
+  // 47 縣的名字平常不顯示（縮小檢視只看 9 個地方分區，畫面才不會擠），
+  // 放大到 k > 3.5 之後才淡入——這個門檻跟地方名字開始淡出是同一個，
+  // 讓「看地方大分區」跟「看個別縣市」在同一個縮放位置自然交接
+  const prefLabelFontBase   = H < 400 ? 6 : 9;
+  const prefLabelStrokeBase = H < 400 ? 2 : 3;
 
   zoom = d3.zoom()
     .scaleExtent([0.5, 16])
@@ -162,6 +167,10 @@ async function initMap() {
         .attr('font-size', String(labelFontBase / k))
         .attr('stroke-width', String(labelStrokeBase / k))
         .style('opacity', k > 3.5 ? Math.max(0, 1 - (k - 3.5) / 2) : 1);
+      g.selectAll('.pref-label')
+        .attr('font-size', String(prefLabelFontBase / k))
+        .attr('stroke-width', String(prefLabelStrokeBase / k))
+        .style('opacity', k > 3.5 ? Math.min(1, (k - 3.5) / 2) : 0);
       hoverLabelK = k;
       if (favLayer) favLayer.selectAll('.fav-heart').attr('font-size', String(15 / k));
       if (hoverLabel) {
@@ -218,11 +227,28 @@ async function initMap() {
       .text(r.label);
   });
 
-  // 預計算每個縣的重心（供 hover 標籤定位）
+  // 預計算每個縣的重心（供 hover 標籤定位），同時建立平常淡出、放大才淡入的縣市名標籤
   prefCentroids = new Map();
   features.forEach(d => {
     const c = path.centroid(d);
-    if (!isNaN(c[0])) prefCentroids.set(getPrefId(d), c);
+    if (isNaN(c[0])) return;
+    const id = getPrefId(d);
+    prefCentroids.set(id, c);
+    const pref = PREF[id];
+    if (!pref) return;
+    const region = REGION[pref.region];
+    g.append('text')
+      .attr('class', 'pref-label')
+      .attr('x', c[0]).attr('y', c[1])
+      .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+      .attr('pointer-events', 'none')
+      .attr('font-family', "'Noto Sans TC', system-ui, sans-serif")
+      .attr('font-size', String(prefLabelFontBase)).attr('font-weight', '800')
+      .attr('fill', region?.color || '#fff')
+      .attr('stroke', 'rgba(6,6,15,0.92)').attr('stroke-width', String(prefLabelStrokeBase))
+      .attr('stroke-linejoin', 'round').attr('paint-order', 'stroke fill')
+      .style('opacity', 0)
+      .text(pref.name);
   });
 
   // 行程動線層先建（在愛心層下方，線不擋愛心），再建愛心層
@@ -1265,10 +1291,16 @@ function buildSeasonSwitch() {
     b.addEventListener('click', () => applySeason(b.dataset.season, true)));
 }
 
+// 手機瀏覽器網址列／PWA 狀態列的顏色跟著季節換膚走，數值取自各季 --body-grad 的頂端色，
+// 這樣狀態列才會跟頁面最上緣的漸層無縫接在一起，不會像原本寫死藍色那樣跟其他季節撞色
+const SEASON_THEME_COLOR = { spring: '#fbdcea', summer: '#a9e2f7', autumn: '#ffd6ab', winter: '#d7e9fa' };
+
 function applySeason(key, save) {
   document.documentElement.dataset.season = key;
   document.querySelectorAll('.season-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.season === key));
+  document.querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', SEASON_THEME_COLOR[key] || '#7cccef');
   if (save) sessionStorage.setItem('jt_season', key);   // 只當次分頁有效，關掉重開就回到跟月份自動
 }
 
