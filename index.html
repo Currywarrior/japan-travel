@@ -318,6 +318,23 @@ header {
 .ex-budget-line { font-size: 0.8rem; color: var(--text2); }
 .ex-budget-line .pack-bar { margin: 0.4rem 0; }
 
+/* 通關須知 */
+.cst-phase { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.1em; color: var(--ink); text-transform: uppercase; margin: 1.7rem 0 0.8rem; padding-bottom: 0.4rem; border-bottom: 3px solid var(--ink); }
+.cst-phase.first { margin-top: 0; }
+.cst-card { margin-bottom: 1.2rem; }
+.cst-card:last-child { margin-bottom: 0; }
+.cst-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem; }
+.cst-badge { flex-shrink: 0; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; color: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 0.15rem 0.6rem; }
+.cst-card[data-level="danger"]  .cst-badge { background: var(--red); }
+.cst-card[data-level="warning"] .cst-badge { background: var(--gold); color: var(--ink); }
+.cst-card[data-level="info"]    .cst-badge { background: var(--sky); }
+.cst-title { font-size: 0.95rem; font-weight: 900; color: var(--ink); }
+.cst-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.cst-item { display: flex; gap: 0.55rem; font-size: 0.88rem; line-height: 1.6; color: var(--text); padding: 0.55rem 0.75rem; background: var(--bg2); border: 2px solid var(--ink); border-radius: 0.7rem; }
+.cst-card[data-level="danger"] .cst-item { background: #fff0f3; }
+.cst-item::before { content: '・'; flex-shrink: 0; font-weight: 900; color: var(--text3); }
+.cst-note { font-size: 0.76rem; color: var(--text3); margin-top: 1.1rem; line-height: 1.6; border-top: 2px dashed var(--sky2); padding-top: 0.8rem; }
+
 /* ── 旅人性格測驗 ─────────────────────────────────── */
 .quiz-start-chip { background: var(--gold); border-color: var(--ink); }
 .quiz-start-chip:hover { background: var(--sun); }
@@ -1477,12 +1494,18 @@ header {
   <button type="button" id="update-bar-close" aria-label="關閉">×</button>
 </div>
 
-<script src="data.js?v=229"></script>
-<script src="app.js?v=229"></script>
+<script src="data.js?v=233"></script>
+<script src="app.js?v=233"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW 註冊失敗', err));
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // 已安裝的 PWA 從背景切回前景時不會觸發 load、瀏覽器不會主動檢查新版，
+      // 這裡手動叫它現在就去比對 sw.js 有沒有變，不用等關掉重開或瀏覽器的 24 小時週期檢查。
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update();
+      });
+    }).catch(err => console.warn('SW 註冊失敗', err));
   });
 }
 </script>
