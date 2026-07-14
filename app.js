@@ -1973,7 +1973,7 @@ function renderCustomsTool(body) {
             <span class="cst-title">${g.title}</span>
           </div>
           <div class="cst-list">
-            ${g.items.map(it => `<div class="cst-item">${it}</div>`).join('')}
+            ${g.items.map(it => `<div class="cst-item"><span>${it}</span></div>`).join('')}
           </div>
         </div>`;
       }).join('')}
